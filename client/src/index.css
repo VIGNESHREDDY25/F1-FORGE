@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased transition-colors duration-200;
+  }
+  .dark body, .dark {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-700 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-600; }
+}
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg font-medium text-sm
+           hover:bg-brand-700 active:bg-brand-800 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+           focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+           border border-gray-200 dark:border-gray-700 rounded-lg font-medium text-sm
+           hover:bg-gray-50 hover:border-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-600 active:bg-gray-100
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm
+           hover:bg-red-700 active:bg-red-800 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
+           focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-medium
+           hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-100 transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800
+           shadow-sm shadow-gray-900/[0.03] dark:shadow-black/20;
+  }
+  .card-hover {
+    @apply card hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 cursor-pointer;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm
+           bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+           hover:border-gray-300 dark:hover:border-gray-600
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           placeholder:text-gray-400 dark:placeholder:text-gray-500
+           disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed
+           transition-all duration-150;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  }
+  .select {
+    @apply input appearance-none cursor-pointer;
+  }
+
+  /* Badges */
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-blue { @apply badge bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300; }
+  .badge-green { @apply badge bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300; }
+  .badge-yellow { @apply badge bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300; }
+  .badge-red { @apply badge bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300; }
+  .badge-gray { @apply badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400; }
+  .badge-purple { @apply badge bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300; }
+
+  /* Page header */
+  .page-header { @apply mb-6; }
+  .page-title { @apply text-2xl font-bold text-gray-900 dark:text-gray-50; }
+  .page-subtitle { @apply text-gray-500 dark:text-gray-400 text-sm mt-0.5; }
+
+  /* Divider */
+  .divider { @apply border-t border-gray-200 dark:border-gray-800; }
+
+  /* Prose for markdown */
+  .prose-chat {
+    @apply text-sm leading-relaxed text-gray-800 dark:text-gray-200;
+  }
+  .prose-chat h1, .prose-chat h2, .prose-chat h3 {
+    @apply font-bold text-gray-900 dark:text-gray-100 mt-3 mb-1;
+  }
+  .prose-chat h2 { @apply text-base; }
+  .prose-chat h3 { @apply text-sm; }
+  .prose-chat ul { @apply list-disc list-inside space-y-0.5 my-1; }
+  .prose-chat ol { @apply list-decimal list-inside space-y-0.5 my-1; }
+  .prose-chat li { @apply text-sm; }
+  .prose-chat strong { @apply font-semibold text-gray-900 dark:text-gray-100; }
+  .prose-chat code { @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs font-mono; }
+  .prose-chat pre { @apply bg-gray-100 dark:bg-gray-800 rounded-lg p-3 my-2 overflow-x-auto text-xs font-mono; }
+  .prose-chat a { @apply text-brand-600 dark:text-brand-400 underline; }
+  .prose-chat blockquote { @apply border-l-2 border-gray-300 dark:border-gray-600 pl-3 italic text-gray-600 dark:text-gray-400 my-1; }
+  .prose-chat p { @apply my-0.5; }
+  .prose-chat hr { @apply my-2 border-gray-200 dark:border-gray-700; }
+}
+
+/* ── App-wide polish layer ─────────────────────────────────────────────────
+   Additive enhancements only — these augment existing classes (no overrides),
+   so dark-mode contrast and layouts stay intact. */
+@layer components {
+  /* Clickable cards lift + deepen shadow on hover */
+  .card-hover { @apply hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-900/[0.06] dark:hover:shadow-black/30; }
+
+  /* Tactile press feedback on buttons */
+  .btn-primary, .btn-secondary, .btn-danger, .btn-ghost {
+    @apply active:scale-[0.97] active:transition-none will-change-transform;
+  }
+  /* Premium primary: subtle gradient sheen + glowing elevation */
+  .btn-primary {
+    @apply bg-gradient-to-b from-brand-500 to-brand-600 hover:from-brand-500 hover:to-brand-700
+           shadow-sm shadow-brand-600/25 hover:shadow-md hover:shadow-brand-600/35;
+  }
+  .btn-danger {
+    @apply shadow-sm shadow-red-600/25 hover:shadow-md hover:shadow-red-600/35;
+  }
+
+  /* Crisper badges with a hairline ring for definition */
+  .badge { @apply ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.06]; }
+
+  /* Brand gradient text for hero headings (opt-in) */
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 to-indigo-500
+           dark:from-brand-400 dark:to-indigo-300 bg-clip-text text-transparent;
+  }
+
+  /* Frosted-glass surface (opt-in) */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/60 backdrop-blur-md
+           border border-white/50 dark:border-white/10;
+  }
+
+  /* Animated brand accent ring for "live" / highlighted elements (opt-in) */
+  .ring-glow { @apply ring-1 ring-brand-500/30 shadow-[0_0_0_4px_rgba(59,130,246,0.06)]; }
+}
+
+@layer base {
+  /* Smoother global interactions */
+  a, button { @apply transition-colors duration-150; }
+
+  /* Honor reduced-motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Subtle ambient depth in dark mode (sits behind the solid bg color) */
+  .dark body {
+    background-image:
+      radial-gradient(900px circle at 8% -10%, rgba(37, 99, 235, 0.10), transparent 45%),
+      radial-gradient(800px circle at 100% 0%, rgba(99, 102, 241, 0.08), transparent 42%);
+    background-attachment: fixed;
+  }
+}
+
+/* LeetCode problem HTML (rendered from /practice/problem/:slug) */
+.lc-content { line-height: 1.65; }
+.lc-content p { margin: 0 0 0.75rem; }
+.lc-content strong { font-weight: 600; }
+.lc-content pre {
+  background: #0a0a0a; color: #e5e7eb; border-radius: 0.5rem;
+  padding: 0.75rem 0.9rem; margin: 0.5rem 0 0.9rem; overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem;
+}
+.lc-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82em;
+  background: rgba(120,120,130,0.16); padding: 0.1em 0.35em; border-radius: 0.3rem;
+}
+.lc-content pre code { background: none; padding: 0; }
+.lc-content ul, .lc-content ol { margin: 0.4rem 0 0.9rem 1.25rem; }
+.lc-content ul { list-style: disc; }
+.lc-content ol { list-style: decimal; }
+.lc-content li { margin: 0.2rem 0; }
+.lc-content img { max-width: 100%; border-radius: 0.5rem; margin: 0.5rem 0; }
+.lc-content a { color: #2563eb; text-decoration: underline; }
+.dark .lc-content a { color: #60a5fa; }
+.lc-content sup { font-size: 0.7em; vertical-align: super; }
