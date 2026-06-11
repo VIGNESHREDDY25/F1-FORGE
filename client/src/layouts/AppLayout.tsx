@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import PointerFx from '../components/fx/PointerFx';
+import AssistantWidget from '../components/AssistantWidget';
 
 export default function AppLayout() {
   const location = useLocation();
@@ -26,6 +27,9 @@ export default function AppLayout() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Global AI assistant — available on every page */}
+      <AssistantWidget />
 
       {/* Global pointer FX: cursor glow + grad-buddy companion + toggle */}
       <PointerFx />

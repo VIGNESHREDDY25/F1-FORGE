@@ -5,8 +5,8 @@ interface Props {
   onToggle: (next: boolean) => void;
 }
 
-/** Small, unobtrusive bottom-right control to switch the cursor companion
- *  on/off. State is persisted by the parent via localStorage. */
+/** Small, unobtrusive bottom-left control to switch the cursor companion
+ *  on/off (bottom-right is reserved for the AI assistant). */
 export default function CompanionToggle({ enabled, onToggle }: Props) {
   return (
     <button
@@ -14,7 +14,7 @@ export default function CompanionToggle({ enabled, onToggle }: Props) {
       onClick={() => onToggle(!enabled)}
       aria-pressed={enabled}
       title={enabled ? 'Hide cursor buddy' : 'Show cursor buddy'}
-      className="fixed bottom-4 right-4 z-[80] inline-flex h-9 w-9 items-center justify-center
+      className="fixed bottom-4 left-4 z-[80] inline-flex h-9 w-9 items-center justify-center
                  rounded-full border border-gray-200 bg-white/80 text-gray-500 shadow-sm backdrop-blur
                  transition-all hover:scale-105 hover:text-brand-600 hover:shadow-md
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
