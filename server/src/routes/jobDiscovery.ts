@@ -569,6 +569,22 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Strictly honor the selected time window — JSearch collapses 1h/5h/24h into
+  // "today", so without this cutoff "Past 1 hour" and "Past 24 hours" show the
+  // exact same list. Always sort newest-first so fresh postings lead.
+  jobs = jobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+  const windowMs: Record<string, number> = {
+    '1h': 3600_000, '5h': 18_000_000, '24h': 86_400_000,
+    '3days': 259_200_000, '5days': 432_000_000, 'week': 604_800_000, 'month': 2_592_000_000,
+  };
+  if (source !== 'curated' && filters.datePosted && windowMs[filters.datePosted]) {
+    const cutoff = Date.now() - windowMs[filters.datePosted];
+    const fresh = jobs.filter(j => new Date(j.postedAt).getTime() >= cutoff);
+    // Short windows can legitimately be empty — show the honest (possibly
+    // smaller) list rather than repeating stale results.
+    jobs = fresh;
+  }
+
   res.json({ jobs, total: jobs.length, source });
 });
 

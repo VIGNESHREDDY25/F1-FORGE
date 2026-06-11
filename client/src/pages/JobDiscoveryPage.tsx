@@ -113,9 +113,11 @@ function CompanyLogo({ company, logo }: { company: string; logo?: string }) {
 }
 
 export default function JobDiscoveryPage() {
-  const [query, setQuery] = useState('Software Engineer');
+  // Allow deep-links like /job-discovery?q=Google from the H1B Companies page
+  const initialQuery = new URLSearchParams(window.location.search).get('q') || 'Software Engineer';
+  const [query, setQuery] = useState(initialQuery);
   const [location, setLocation] = useState('United States');
-  const [inputQuery, setInputQuery] = useState('Software Engineer');
+  const [inputQuery, setInputQuery] = useState(initialQuery);
   const [inputLocation, setInputLocation] = useState('United States');
   const [filters, setFilters] = useState<Filters>({ h1bOnly: false, remote: false, jobType: '', expLevel: '', salaryMin: '', datePosted: '24h' });
   const [showFilters, setShowFilters] = useState(false);
@@ -956,6 +958,8 @@ function OutreachBoard({
 
 function OutreachJobRow({ row, university }: { row: OutreachRow; university: string }) {
   const [copied, setCopied] = useState(false);
+  const [tracked, setTracked] = useState(false);
+  const [tracking, setTracking] = useState(false);
 
   const timeAgo = (() => {
     try { return formatDistanceToNow(new Date(row.postedAt), { addSuffix: true }); }
@@ -970,6 +974,25 @@ function OutreachJobRow({ row, university }: { row: OutreachRow; university: str
       setTimeout(() => setCopied(false), 2500);
     } catch {
       toast.error('Could not copy — please copy manually.');
+    }
+  };
+
+  const handleTrack = async () => {
+    if (tracked || tracking) return;
+    setTracking(true);
+    try {
+      await api.post('/jobs', {
+        company: row.company,
+        role: row.title,
+        jdUrl: row.applyUrl,
+        stage: 'applied',
+      });
+      setTracked(true);
+      toast.success(`${row.company} added to your Application Tracker`);
+    } catch {
+      toast.error('Could not add to tracker. Try again.');
+    } finally {
+      setTracking(false);
     }
   };
 
@@ -1057,8 +1080,8 @@ function OutreachJobRow({ row, university }: { row: OutreachRow; university: str
         </a>
       </div>
 
-      {/* Copy outreach */}
-      <div className="w-28 shrink-0">
+      {/* Copy outreach + Track */}
+      <div className="w-28 shrink-0 flex flex-col gap-1">
         <button
           onClick={handleCopy}
           className={clsx(
@@ -1071,6 +1094,20 @@ function OutreachJobRow({ row, university }: { row: OutreachRow; university: str
         >
           {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
           {copied ? 'Copied!' : 'Copy outreach'}
+        </button>
+        <button
+          onClick={handleTrack}
+          disabled={tracked || tracking}
+          className={clsx(
+            'w-full py-1 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 border',
+            tracked
+              ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 cursor-default'
+              : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-brand-400 hover:text-brand-600'
+          )}
+          title="Add this job to your Application Tracker as applied"
+        >
+          {tracked ? <CheckCircle2 size={11} /> : <Briefcase size={11} />}
+          {tracked ? 'Tracked' : tracking ? 'Adding…' : 'Track'}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Building2, TrendingUp, Download, Star, ArrowUpDown } from 'lucide-react';
 import api from '../api/client';
@@ -71,6 +72,14 @@ export default function CompaniesPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">H1B Sponsorship Companies</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">Browse {data?.total?.toLocaleString() ?? '50,000+'} companies that have historically sponsored H1B visas.</p>
+      </div>
+
+      {/* Why this matters */}
+      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-900 rounded-xl">
+        <p className="text-sm font-semibold text-green-900 dark:text-green-200">✅ Check before you apply — don't waste applications</p>
+        <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+          As an F1 student, applying to a company that has never sponsored H1B is usually a dead end. Search any company below before applying — if it has a strong petition history and approval rate, your visa conversation will be much easier. Click a company to find its open roles.
+        </p>
       </div>
 
       {/* Top H1B Employers */}
@@ -157,12 +166,16 @@ export default function CompaniesPage() {
               : companies.map(c => (
                 <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <Link
+                      to={`/job-discovery?q=${encodeURIComponent(c.name)}`}
+                      className="flex items-center gap-2 group"
+                      title={`Find open roles at ${c.name}`}
+                    >
                       <div className="w-7 h-7 bg-brand-50 rounded-md flex items-center justify-center">
                         <Building2 size={13} className="text-brand-600" />
                       </div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.name}</span>
-                    </div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-600 group-hover:underline">{c.name}</span>
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{c.industry || '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">{c.headquarters || '—'}</td>

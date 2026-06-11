@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Plus, Copy, Check, Lightbulb, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../api/client';
@@ -151,6 +152,17 @@ export default function NetworkingPage() {
         <button onClick={() => setShowForm(true)} className="btn-primary">
           <Plus size={16} /> Generate Message
         </button>
+      </div>
+
+      {/* LinkedIn automation banner */}
+      <div className="flex items-center justify-between gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900 rounded-xl">
+        <div>
+          <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">⚡ Automate your follow-ups</p>
+          <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+            Connect LinkedIn in Integrations and F1Forge can send your approved outreach messages and follow-ups automatically — you confirm, it sends.
+          </p>
+        </div>
+        <Link to="/settings" className="btn-primary text-xs shrink-0 whitespace-nowrap">Connect LinkedIn</Link>
       </div>
 
       {/* Stats row */}
