@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: f1forge
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  # Self-hosted code execution engine for the Practice IDE.
+  # Free, unlimited, multi-language. Point the server at it with PISTON_URL.
+  # After first boot, install runtimes, e.g.:
+  #   curl -s -X POST http://localhost:2000/api/v2/packages -H 'Content-Type: application/json' -d '{"language":"python","version":"3.12.0"}'
+  #   (repeat for node, java, c++) — or use the piston CLI.
+  piston:
+    image: ghcr.io/engineer-man/piston
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - '2000:2000'
+    volumes:
+      - piston_data:/piston/packages
+    tmpfs:
+      - /tmp:exec
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/f1forge
+      REDIS_URL: redis://redis:6379
+      PISTON_URL: http://piston:2000
+    ports:
+      - '5000:5000'
+    depends_on:
+      - postgres
+      - redis
+      - piston
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    depends_on:
+      - server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

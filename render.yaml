@@ -1,0 +1,28 @@
+# Render Blueprint for F1Forge — one free web service that serves both the API
+# and the built React app. Deploy: push to GitHub → Render dashboard →
+# "New +" → "Blueprint" → pick this repo. Then set the two secret env vars
+# (GROQ_API_KEY, RAPIDAPI_KEY) when prompted.
+services:
+  - type: web
+    name: f1forge
+    runtime: node
+    plan: free
+    # NODE_ENV=production makes npm skip devDeps, but vite/tsc are devDeps —
+    # `--include=dev` forces them so the build works.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: groq
+      - key: CLIENT_URL
+        value: https://f1forge.onrender.com   # update to your real Render URL after first deploy
+      - key: JWT_SECRET
+        generateValue: true                    # Render generates a strong secret
+      - key: GROQ_API_KEY
+        sync: false                            # set in dashboard (free key from console.groq.com)
+      - key: RAPIDAPI_KEY
+        sync: false                            # set in dashboard (your JSearch key)

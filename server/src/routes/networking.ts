@@ -1,0 +1,65 @@
+import { Router, Response } from 'express';
+import { z } from 'zod';
+import { findAll, findOne, insert, update } from '../db/store';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { generateNetworkingMessage } from '../services/aiAssistant';
+
+const router = Router();
+router.use(authenticate);
+
+const generateSchema = z.object({
+  messageType: z.enum(['linkedin_connect','follow_up','cold_email','referral_ask','thank_you','negotiation']),
+  targetName: z.string().min(1),
+  targetCompany: z.string().min(1),
+  targetRole: z.string().min(1),
+  sharedContext: z.string().optional(),
+});
+
+router.post('/generate', validate(generateSchema), async (req: AuthRequest, res: Response) => {
+  const { messageType, targetName, targetCompany, targetRole, sharedContext } = req.body;
+  const user = findOne<any>('users', u => u.id === req.user!.id);
+
+  const result = await generateNetworkingMessage({
+    messageType, targetName, targetCompany, targetRole, sharedContext,
+    userUniversity: user?.university,
+  });
+
+  const msg = insert('networking_messages', {
+    user_id: req.user!.id, message_type: messageType, target_name: targetName,
+    target_company: targetCompany, target_role: targetRole,
+    generated_message: result.message, subject_line: result.subjectLine,
+    outcome: 'pending',
+  });
+  res.json(msg);
+});
+
+router.get('/', (req: AuthRequest, res: Response) => {
+  const messages = findAll<any>('networking_messages', m => m.user_id === req.user!.id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  res.json(messages);
+});
+
+router.patch('/:id/outcome', (req: AuthRequest, res: Response) => {
+  const { outcome } = req.body;
+  const valid = ['pending','responded','no_response','meeting_scheduled'];
+  if (!valid.includes(outcome)) return res.status(400).json({ error: 'Invalid outcome' });
+
+  const msg = findOne<any>('networking_messages', m => m.id === req.params.id && m.user_id === req.user!.id);
+  if (!msg) return res.status(404).json({ error: 'Not found' });
+
+  const updated = update('networking_messages', req.params.id, { outcome });
+  res.json(updated);
+});
+
+router.get('/stats', (req: AuthRequest, res: Response) => {
+  const msgs = findAll<any>('networking_messages', m => m.user_id === req.user!.id);
+  res.json({
+    total: msgs.length,
+    connections: msgs.filter(m => m.message_type === 'linkedin_connect').length,
+    responses: msgs.filter(m => m.outcome === 'responded').length,
+    meetings: msgs.filter(m => m.outcome === 'meeting_scheduled').length,
+  });
+});
+
+export default router;

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+*.local.json
+
+# runtime JSON datastore (re-seeded on boot)
+server/f1forge-data.json
+f1forge-data.json
