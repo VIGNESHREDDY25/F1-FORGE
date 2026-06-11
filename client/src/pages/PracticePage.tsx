@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Code2, Play, Terminal, Lightbulb, RotateCcw, CheckCircle2, XCircle, Cpu,
-  Sparkles, Search, ExternalLink, Loader2, Star, Tag, ChevronLeft,
+  Sparkles, Search, ExternalLink, Loader2, Star, Tag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import api from '../api/client';
@@ -69,7 +69,6 @@ export default function PracticePage() {
   const [debounced, setDebounced] = useState('');
   const [difficulty, setDifficulty] = useState('All');
   const [topic, setTopic] = useState('');
-  const [showTopics, setShowTopics] = useState(false);
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [featured, setFeatured] = useState<CatalogItem[]>([]);
@@ -216,41 +215,8 @@ export default function PracticePage() {
         {/* Catalog */}
         <div className="card p-3 h-fit lg:sticky lg:top-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
 
-          {/* Topics browser toggle */}
-          {showTopics ? (
-            <div className="flex flex-col min-h-0">
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => setShowTopics(false)}
-                  className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                >
-                  <ChevronLeft size={14} /> Back
-                </button>
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <Tag size={13} className="text-brand-500" /> Browse by Topic
-                </span>
-              </div>
-              <div className="overflow-y-auto -mx-1 px-1">
-                <div className="flex flex-wrap gap-1.5 pb-2">
-                  {topics.map(t => (
-                    <button
-                      key={t.slug}
-                      onClick={() => { setTopic(t.slug); setShowTopics(false); setPage(1); setSelectedSlug(null); }}
-                      className={clsx(
-                        'text-xs px-2.5 py-1 rounded-full font-medium border transition-colors',
-                        topic === t.slug
-                          ? 'bg-brand-600 text-white border-brand-600 dark:bg-brand-500 dark:border-brand-500'
-                          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-brand-400 dark:hover:border-brand-500 hover:text-brand-700 dark:hover:text-brand-300'
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
+          {/* Search + Difficulty */}
+          <>
               <div className="relative mb-2">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -269,21 +235,41 @@ export default function PracticePage() {
                 ))}
               </div>
 
-              {/* Active topic pill + Browse Topics button */}
-              <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                {activeTopic && (
-                  <span className="flex items-center gap-1 text-xs bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 rounded-full px-2.5 py-0.5 font-medium">
-                    <Tag size={10} /> {activeTopic.label}
-                    <button onClick={() => { setTopic(''); setPage(1); }} className="ml-1 text-brand-400 hover:text-brand-600 dark:hover:text-brand-200 font-bold leading-none">&times;</button>
-                  </span>
-                )}
-                <button
-                  onClick={() => setShowTopics(true)}
-                  className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors border border-dashed border-gray-300 dark:border-gray-700 rounded-full px-2.5 py-0.5"
-                >
-                  <Tag size={10} /> {activeTopic ? 'Change topic' : 'Browse topics'}
-                </button>
-              </div>
+              {/* Topics — always visible */}
+              {topics.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide px-0.5 mb-1.5 flex items-center gap-1">
+                    <Tag size={9} /> Topics
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      onClick={() => { setTopic(''); setPage(1); setSelectedSlug(null); }}
+                      className={clsx(
+                        'text-xs px-2 py-0.5 rounded-full font-medium border transition-colors',
+                        !topic
+                          ? 'bg-brand-600 text-white border-brand-600 dark:bg-brand-500 dark:border-brand-500'
+                          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-brand-400 hover:text-brand-700 dark:hover:text-brand-300'
+                      )}
+                    >
+                      All
+                    </button>
+                    {topics.map(t => (
+                      <button
+                        key={t.slug}
+                        onClick={() => { setTopic(t.slug); setPage(1); setSelectedSlug(null); }}
+                        className={clsx(
+                          'text-xs px-2 py-0.5 rounded-full font-medium border transition-colors',
+                          topic === t.slug
+                            ? 'bg-brand-600 text-white border-brand-600 dark:bg-brand-500 dark:border-brand-500'
+                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-brand-400 hover:text-brand-700 dark:hover:text-brand-300'
+                        )}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="overflow-y-auto -mx-1 px-1 space-y-0.5">
                 {featured.length > 0 && difficulty === 'All' && !debounced && !topic && (
@@ -318,7 +304,6 @@ export default function PracticePage() {
                 )}
               </div>
             </>
-          )}
         </div>
 
         {/* Detail + editor */}

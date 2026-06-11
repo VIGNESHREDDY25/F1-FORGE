@@ -2,12 +2,12 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, FileText, Shield, Building2,
   Bot, Users, Code2, MessageSquare, User, ChevronRight, Search,
-  TrendingUp, BarChart3, ShieldCheck
+  TrendingUp, BarChart3, ShieldCheck, Settings,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 
-const ADMIN_EMAILS = ['moluguvigneshreddy2@gmail.com', 'vignesh@gmu.edu'];
+const ADMIN_EMAILS = ['moluguvigneshreddy2@gmail.com'];
 
 const navGroups = [
   {
@@ -97,15 +97,23 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Profile */}
-      <div className="p-3 border-t border-gray-100 dark:border-gray-800">
+      {/* Profile + Settings */}
+      <div className="p-3 border-t border-gray-100 dark:border-gray-800 space-y-0.5">
         <NavLink to="/profile"
           className={({ isActive }) => clsx(
             'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors',
             isActive ? 'bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
           )}>
           <User size={15} className="text-gray-400" />
-          <span className="text-[13px]">Profile & Settings</span>
+          <span className="text-[13px]">Profile</span>
+        </NavLink>
+        <NavLink to="/settings"
+          className={({ isActive }) => clsx(
+            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors',
+            isActive ? 'bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+          )}>
+          <Settings size={15} className="text-gray-400" />
+          <span className="text-[13px]">Integrations</span>
         </NavLink>
       </div>
     </aside>

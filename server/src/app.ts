@@ -24,6 +24,7 @@ import jobDiscoveryRoutes from './routes/jobDiscovery';
 import practiceRoutes from './routes/practice';
 import adminRoutes from './routes/admin';
 import salaryRoutes from './routes/salary';
+import settingsRoutes from './routes/settings';
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/job-discovery', jobDiscoveryRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/salary', salaryRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ─── Serve the built React client (single-service production deploy) ─────────
 // In production the API and the SPA are the same origin, so the client's

@@ -23,6 +23,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import AdminPage from './pages/AdminPage';
 import NetworkingPage from './pages/NetworkingPage';
 import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = useAuthStore(s => s.token);
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/interviews" element={<Navigate to="/practice" replace />} />
           <Route path="/networking" element={<ErrorBoundary><NetworkingPage /></ErrorBoundary>} />
           <Route path="/profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

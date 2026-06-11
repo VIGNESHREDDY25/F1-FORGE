@@ -29,7 +29,7 @@ services:
           name: f1forge-db
           property: connectionString
       - key: ADMIN_EMAILS                      # who can access the /admin panel
-        value: moluguvigneshreddy2@gmail.com,vignesh@gmu.edu
+        value: moluguvigneshreddy2@gmail.com
       - key: CLIENT_URL
         value: https://f1forge.onrender.com    # update to your real Render URL after first deploy
       - key: JWT_SECRET

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp, DollarSign, Building2, MapPin, Info, Bot, Send, ChevronDown, BadgeCheck, Lightbulb } from 'lucide-react';
+import { TrendingUp, DollarSign, Building2, MapPin, Info, Bot, Send, BadgeCheck, Lightbulb } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import api from '../api/client';
 import { clsx } from 'clsx';
@@ -12,7 +12,7 @@ export default function SalaryPage() {
   const [role, setRole] = useState('Software Engineer');
   const [location, setLocation] = useState('United States');
   const [company, setCompany] = useState('');
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -55,10 +55,10 @@ export default function SalaryPage() {
   ] : [];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-6xl mx-auto space-y-5">
       <div>
-        <h1 className="page-title">Salary Insights</h1>
-        <p className="page-subtitle">Real compensation data from H1B public filings — know your worth before negotiating.</p>
+        <h1 className="page-title">Salary Intelligence</h1>
+        <p className="page-subtitle">Real H1B compensation data + AI salary coach — know your worth and negotiate confidently.</p>
       </div>
 
       {/* Filters */}
@@ -247,39 +247,42 @@ export default function SalaryPage() {
         </div>
       </div>
 
-      {/* AI Chat Widget */}
-      <div className={clsx(
-        'fixed bottom-5 right-5 z-40 flex flex-col transition-all duration-300',
-        chatOpen ? 'w-80 shadow-2xl' : 'w-auto'
-      )}>
-        {chatOpen && (
-          <div className="card flex flex-col overflow-hidden" style={{ height: '440px' }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-brand-600">
-              <div className="flex items-center gap-2">
-                <Bot size={15} className="text-white" />
-                <span className="text-sm font-semibold text-white">Salary Advisor</span>
-                <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full">F1-aware</span>
-              </div>
-              <button onClick={() => setChatOpen(false)} className="text-white/70 hover:text-white transition-colors">
-                <ChevronDown size={16} />
-              </button>
-            </div>
+      {/* AI Salary Advisor — inline */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-brand-600">
+          <div className="flex items-center gap-2">
+            <Bot size={15} className="text-white" />
+            <span className="text-sm font-semibold text-white">AI Salary Advisor</span>
+            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full">F1-aware</span>
+          </div>
+          <button onClick={() => setChatOpen(o => !o)} className="text-white/70 hover:text-white transition-colors text-xs">
+            {chatOpen ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50 dark:bg-gray-900/50">
+        {chatOpen && (
+          <>
+            <div className="overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/50" style={{ minHeight: 180, maxHeight: 360 }}>
               {chatMessages.length === 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center pt-2">Ask F1-aware salary questions</p>
-                  {[
-                    'Is $120k good for a new grad SWE in NYC?',
-                    'How do I negotiate as an F1 student?',
-                    'What is prevailing wage for H1B?',
-                    'How do RSUs work in total compensation?',
-                  ].map(q => (
-                    <button key={q} onClick={() => sendChat(q)}
-                      className="w-full text-left text-xs px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors text-gray-700 dark:text-gray-300">
-                      {q}
-                    </button>
-                  ))}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Ask anything about salary negotiation, H1B prevailing wages, total comp, or OPT/STEM OPT strategy.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      `Is $${Math.round((insights?.salaryBands?.median ?? 130000) / 1000)}k good for ${role} in ${location}?`,
+                      'How do I negotiate as an F1/OPT student?',
+                      'What is the H1B prevailing wage requirement?',
+                      'How do RSUs and signing bonus fit into total comp?',
+                      'Should I disclose my visa status during negotiation?',
+                      'What competing offer leverage do I have on OPT?',
+                    ].map(q => (
+                      <button key={q} onClick={() => sendChat(q)}
+                        className="text-left text-xs px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors text-gray-700 dark:text-gray-300">
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               {chatMessages.map((m, i) => (
@@ -310,27 +313,19 @@ export default function SalaryPage() {
 
             <div className="flex items-center gap-2 p-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
               <input
-                className="input flex-1 text-xs py-2"
-                placeholder="Ask a salary question…"
+                className="input flex-1 text-sm"
+                placeholder="Ask a salary or negotiation question…"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
                 disabled={chatLoading}
               />
               <button onClick={() => sendChat()} disabled={chatLoading || !chatInput.trim()}
-                className="btn-primary p-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed">
-                <Send size={13} />
+                className="btn-primary px-3 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                <Send size={14} />
               </button>
             </div>
-          </div>
-        )}
-
-        {!chatOpen && (
-          <button onClick={() => setChatOpen(true)}
-            className="self-end flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white rounded-full px-4 py-3 shadow-lg transition-all hover:scale-105 text-sm font-semibold">
-            <Bot size={16} />
-            <span>Salary Advisor</span>
-          </button>
+          </>
         )}
       </div>
     </div>

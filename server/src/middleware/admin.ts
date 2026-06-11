@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
 
-const DEFAULT_ADMINS = ['moluguvigneshreddy2@gmail.com', 'vignesh@gmu.edu'];
+const DEFAULT_ADMINS = ['moluguvigneshreddy2@gmail.com'];
 
 function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS;

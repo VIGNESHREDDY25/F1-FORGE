@@ -14,7 +14,8 @@ import {
   Pie,
   Legend,
 } from 'recharts';
-import { TrendingUp, Briefcase, Award, Target, BarChart2 } from 'lucide-react';
+import { TrendingUp, Briefcase, Award, Target, BarChart2, Mail, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -223,6 +224,26 @@ export default function AnalyticsPage() {
       <div className="page-header">
         <h1 className="page-title">Analytics</h1>
         <p className="page-subtitle">Your job-search funnel, activity, and conversion rates.</p>
+      </div>
+
+      {/* Gmail automation banner */}
+      <div className="flex items-center justify-between gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900 rounded-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+            <Mail size={17} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+              <Zap size={13} className="text-blue-500" /> Automate your tracker with Gmail
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+              Connect Gmail and F1Forge will auto-detect application confirmations and update your tracker — no manual entry.
+            </p>
+          </div>
+        </div>
+        <Link to="/settings" className="btn-primary text-xs shrink-0 whitespace-nowrap">
+          Connect Gmail
+        </Link>
       </div>
 
       {/* Stat cards */}
