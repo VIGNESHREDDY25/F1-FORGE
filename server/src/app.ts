@@ -22,6 +22,7 @@ import dashboardRoutes from './routes/dashboard';
 import newsRoutes from './routes/news';
 import jobDiscoveryRoutes from './routes/jobDiscovery';
 import practiceRoutes from './routes/practice';
+import adminRoutes from './routes/admin';
 import salaryRoutes from './routes/salary';
 
 const app = express();
@@ -60,6 +61,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/job-discovery', jobDiscoveryRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/salary', salaryRoutes);
 
 // ─── Serve the built React client (single-service production deploy) ─────────

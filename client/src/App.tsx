@@ -19,6 +19,8 @@ import CompaniesPage from './pages/CompaniesPage';
 import AssistantPage from './pages/AssistantPage';
 import ReferralsPage from './pages/ReferralsPage';
 import PracticePage from './pages/PracticePage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import AdminPage from './pages/AdminPage';
 import NetworkingPage from './pages/NetworkingPage';
 import ProfilePage from './pages/ProfilePage';
 
@@ -58,6 +60,8 @@ export default function App() {
           <Route path="/assistant" element={<ErrorBoundary><AssistantPage /></ErrorBoundary>} />
           <Route path="/referrals" element={<ErrorBoundary><ReferralsPage /></ErrorBoundary>} />
           <Route path="/practice" element={<ErrorBoundary><PracticePage /></ErrorBoundary>} />
+          <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+          <Route path="/admin" element={<ErrorBoundary><AdminPage /></ErrorBoundary>} />
           <Route path="/interviews" element={<Navigate to="/practice" replace />} />
           <Route path="/networking" element={<ErrorBoundary><NetworkingPage /></ErrorBoundary>} />
           <Route path="/profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />

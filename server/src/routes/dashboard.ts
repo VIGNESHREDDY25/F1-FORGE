@@ -74,4 +74,85 @@ router.patch('/notifications/read-all', (req: AuthRequest, res: Response) => {
   res.status(204).send();
 });
 
+router.get('/analytics', (req: AuthRequest, res: Response) => {
+  const uid = req.user!.id;
+  const jobs = findAll<any>('job_applications', j => j.user_id === uid);
+  const now = new Date();
+
+  // ── Funnel counts by stage ────────────────────────────────────────────────
+  const STAGES = ['saved', 'applied', 'assessment', 'interview', 'offer', 'rejected'] as const;
+  const stageCounts: Record<string, number> = {};
+  for (const s of STAGES) stageCounts[s] = 0;
+  for (const j of jobs) {
+    if (stageCounts[j.stage] !== undefined) stageCounts[j.stage]++;
+  }
+
+  const funnel = STAGES.map(stage => ({ stage, count: stageCounts[stage] }));
+
+  // ── Conversion / response rates ───────────────────────────────────────────
+  const totalApplied = stageCounts['applied'] + stageCounts['assessment'] +
+    stageCounts['interview'] + stageCounts['offer'] + stageCounts['rejected'];
+  const interviewCount = stageCounts['interview'] + stageCounts['offer'];
+  const offerCount = stageCounts['offer'];
+
+  const interviewRate = totalApplied > 0
+    ? Math.round((interviewCount / totalApplied) * 100)
+    : 0;
+  const offerRate = totalApplied > 0
+    ? Math.round((offerCount / totalApplied) * 100)
+    : 0;
+  // response rate = any active/positive signal past applied
+  const responseRate = totalApplied > 0
+    ? Math.round(((stageCounts['assessment'] + stageCounts['interview'] + stageCounts['offer']) / totalApplied) * 100)
+    : 0;
+
+  // ── Applications per week (last 8 weeks) ──────────────────────────────────
+  const weeklyActivity: { week: string; label: string; count: number }[] = [];
+  for (let w = 7; w >= 0; w--) {
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() - w * 7);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const count = jobs.filter(j => {
+      const d = new Date(j.created_at);
+      return d >= weekStart && d <= weekEnd;
+    }).length;
+
+    const label = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    weeklyActivity.push({ week: weekStart.toISOString().slice(0, 10), label, count });
+  }
+
+  // ── Top companies applied to ───────────────────────────────────────────────
+  const companyCounts: Record<string, number> = {};
+  for (const j of jobs) {
+    const name = j.company || 'Unknown';
+    companyCounts[name] = (companyCounts[name] || 0) + 1;
+  }
+  const topCompanies = Object.entries(companyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([company, count]) => ({ company, count }));
+
+  // ── Status distribution (for pie / donut) ─────────────────────────────────
+  const statusDistribution = funnel
+    .filter(f => f.count > 0)
+    .map(f => ({ stage: f.stage, count: f.count }));
+
+  res.json({
+    total: jobs.length,
+    totalApplied,
+    funnel,
+    interviewRate,
+    offerRate,
+    responseRate,
+    weeklyActivity,
+    topCompanies,
+    statusDistribution,
+  });
+});
+
 export default router;

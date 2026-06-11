@@ -7,14 +7,45 @@ router.use(authenticate);
 
 // ─── Languages (mapped to Piston runtimes) ───────────────────────────────────
 export const LANGUAGES = [
-  { id: 'python', label: 'Python', piston: 'python', version: '3.10.0', ext: 'py', wandbox: 'cpython-3.14.0' },
-  { id: 'javascript', label: 'JavaScript', piston: 'javascript', version: '18.15.0', ext: 'js', wandbox: 'nodejs-18.20.4' },
-  { id: 'java', label: 'Java', piston: 'java', version: '15.0.2', ext: 'java', wandbox: 'openjdk-jdk-22+36' },
-  { id: 'cpp', label: 'C++', piston: 'c++', version: '10.2.0', ext: 'cpp', wandbox: 'gcc-13.2.0' },
+  { id: 'python', label: 'Python', piston: 'python', version: '3.10.0', ext: 'py', wandbox: 'cpython-3.14.0', judge0: 71 },
+  { id: 'javascript', label: 'JavaScript', piston: 'javascript', version: '18.15.0', ext: 'js', wandbox: 'nodejs-18.20.4', judge0: 63 },
+  { id: 'java', label: 'Java', piston: 'java', version: '15.0.2', ext: 'java', wandbox: 'openjdk-jdk-22+36', judge0: 62 },
+  { id: 'cpp', label: 'C++', piston: 'c++', version: '10.2.0', ext: 'cpp', wandbox: 'gcc-13.2.0', judge0: 54 },
 ] as const;
 
 type Lang = (typeof LANGUAGES)[number];
 interface RunResult { stdout: string; stderr: string; code: number; provider: string; }
+
+// Free public runners sometimes return their own infra errors as "output".
+// Treat those as a provider failure so we fall through, never show them to users.
+const INFRA_ERROR = /OCI runtime|Resource temporarily unavailable|cannot allocate|no healthy upstream|clone:\s|502 Bad Gateway|503 Service|gateway timeout/i;
+function assertRealOutput(r: RunResult): RunResult {
+  if (INFRA_ERROR.test(`${r.stdout}\n${r.stderr}`)) throw new Error('runner infra error');
+  return r;
+}
+
+// ── Provider: Judge0 CE via RapidAPI (reliable; uses your RAPIDAPI_KEY) ────────
+// Requires a free one-click subscription to "Judge0 CE" on rapidapi.com.
+async function runViaJudge0(lang: Lang, source: string, stdin: string): Promise<RunResult> {
+  const key = process.env.RAPIDAPI_KEY;
+  if (!key || key === 'your_rapidapi_key') throw new Error('no RapidAPI key');
+  const resp = await fetch('https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-RapidAPI-Key': key,
+      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
+    },
+    body: JSON.stringify({ source_code: source, language_id: lang.judge0, stdin }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!resp.ok) throw new Error(`judge0 ${resp.status}`);
+  const d = (await resp.json()) as any;
+  const stdout = (d.stdout || '').trimEnd();
+  const stderr = (d.stderr || d.compile_output || d.message || '').trimEnd();
+  const accepted = d.status?.id === 3; // 3 = Accepted
+  return { stdout, stderr, code: accepted ? 0 : 1, provider: 'judge0' };
+}
 
 // ── Provider 1: self-hosted Piston (set PISTON_URL; e.g. docker-compose) ──────
 async function runViaPiston(baseUrl: string, lang: Lang, source: string, stdin: string): Promise<RunResult> {
@@ -509,25 +540,28 @@ router.post('/run', async (req: AuthRequest, res: Response) => {
   const input = stdin || '';
 
   const errors: string[] = [];
+  const send = (r: RunResult) =>
+    res.json({ ...r, output: (r.stdout + (r.stderr ? `\n${r.stderr}` : '')).trim() || '(no output)', language: lang.id });
 
-  // 1) Self-hosted Piston if configured (best for production — unlimited & free)
+  // Provider chain, in order of reliability. Each result is validated so a
+  // runner's own infra error can never surface as the user's program output.
   const pistonUrl = process.env.PISTON_URL;
   if (pistonUrl) {
-    try {
-      const r = await runViaPiston(pistonUrl.replace(/\/$/, ''), lang, source, input);
-      return res.json({ ...r, output: (r.stdout + (r.stderr ? `\n${r.stderr}` : '')).trim() || '(no output)', language: lang.id });
-    } catch (e: any) { errors.push(`piston: ${e?.message}`); }
+    try { return send(assertRealOutput(await runViaPiston(pistonUrl.replace(/\/$/, ''), lang, source, input))); }
+    catch (e: any) { errors.push(`piston: ${e?.message}`); }
   }
-
-  // 2) Wandbox public API (works with no setup)
-  try {
-    const r = await runViaWandbox(lang, source, input);
-    return res.json({ ...r, output: (r.stdout + (r.stderr ? `\n${r.stderr}` : '')).trim() || '(no output)', language: lang.id });
-  } catch (e: any) { errors.push(`wandbox: ${e?.message}`); }
+  // Judge0 — reliable, uses RAPIDAPI_KEY (free Judge0 CE subscription)
+  try { return send(assertRealOutput(await runViaJudge0(lang, source, input))); }
+  catch (e: any) { errors.push(`judge0: ${e?.message}`); }
+  // Wandbox — best-effort public fallback
+  try { return send(assertRealOutput(await runViaWandbox(lang, source, input))); }
+  catch (e: any) { errors.push(`wandbox: ${e?.message}`); }
 
   res.status(502).json({
-    error: 'No code runner available right now.',
-    hint: 'JavaScript still runs in-browser. For unlimited multi-language execution, set PISTON_URL to a self-hosted Piston (see docker-compose).',
+    error: lang.id === 'javascript'
+      ? 'The cloud runner is busy — JavaScript still runs instantly in your browser.'
+      : 'The code runner is busy right now. JavaScript runs instantly in-browser; for reliable Python/Java/C++, enable Judge0 CE (free) on RapidAPI or set PISTON_URL.',
+    hint: 'Try again in a moment.',
     detail: errors.join(' | '),
   });
 });

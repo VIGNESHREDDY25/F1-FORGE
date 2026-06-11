@@ -2,9 +2,12 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, FileText, Shield, Building2,
   Bot, Users, Code2, MessageSquare, User, ChevronRight, Search,
-  TrendingUp
+  TrendingUp, BarChart3, ShieldCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAuthStore } from '../../store/authStore';
+
+const ADMIN_EMAILS = ['moluguvigneshreddy2@gmail.com', 'vignesh@gmu.edu'];
 
 const navGroups = [
   {
@@ -12,6 +15,7 @@ const navGroups = [
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/job-discovery', icon: Search, label: 'Job Discovery', badge: 'LIVE' },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     ],
   },
   {
@@ -41,6 +45,12 @@ const navGroups = [
 ];
 
 export default function Sidebar() {
+  const user = useAuthStore(s => s.user);
+  const isAdmin = !!user && ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+  const groups = isAdmin
+    ? [...navGroups, { label: 'Admin', items: [{ to: '/admin', icon: ShieldCheck, label: 'Admin Panel' }] }]
+    : navGroups;
+
   return (
     <aside className="w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0">
       {/* Logo */}
@@ -58,7 +68,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
-        {navGroups.map(group => (
+        {groups.map(group => (
           <div key={group.label}>
             <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-2 mb-1">
               {group.label}

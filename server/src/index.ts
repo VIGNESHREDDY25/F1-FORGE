@@ -1,10 +1,10 @@
 import app from './app';
 import { config } from './config';
-import { loadStore, seedIfEmpty } from './db/store';
+import { initStore, seedIfEmpty } from './db/store';
 import { startScheduler } from './services/scheduler';
 
-function start() {
-  loadStore();
+async function start() {
+  await initStore();   // load snapshot (Postgres or file) BEFORE seeding/saving
   seedIfEmpty();
   startScheduler();
 

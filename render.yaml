@@ -1,7 +1,13 @@
 # Render Blueprint for F1Forge — one free web service that serves both the API
-# and the built React app. Deploy: push to GitHub → Render dashboard →
-# "New +" → "Blueprint" → pick this repo. Then set the two secret env vars
-# (GROQ_API_KEY, RAPIDAPI_KEY) when prompted.
+# and the built React app, plus a free Postgres for persistent data.
+# Deploy: push to GitHub → Render dashboard → "New +" → "Blueprint" → pick this
+# repo. Then set the two secret env vars (GROQ_API_KEY, RAPIDAPI_KEY) when prompted.
+databases:
+  - name: f1forge-db
+    plan: free            # free Postgres (note: Render's free DB expires ~30 days;
+    databaseName: f1forge #   for a permanent free DB use Neon/Supabase and paste its
+    user: f1forge         #   URL into DATABASE_URL instead.)
+
 services:
   - type: web
     name: f1forge
@@ -18,11 +24,18 @@ services:
         value: production
       - key: AI_PROVIDER
         value: groq
+      - key: DATABASE_URL                      # persistent storage so user data survives redeploys
+        fromDatabase:
+          name: f1forge-db
+          property: connectionString
+      - key: ADMIN_EMAILS                      # who can access the /admin panel
+        value: moluguvigneshreddy2@gmail.com,vignesh@gmu.edu
       - key: CLIENT_URL
-        value: https://f1forge.onrender.com   # update to your real Render URL after first deploy
+        value: https://f1forge.onrender.com    # update to your real Render URL after first deploy
       - key: JWT_SECRET
         generateValue: true                    # Render generates a strong secret
       - key: GROQ_API_KEY
         sync: false                            # set in dashboard (free key from console.groq.com)
       - key: RAPIDAPI_KEY
-        sync: false                            # set in dashboard (your JSearch key)
+        sync: false                            # set in dashboard (your JSearch key; also powers the
+                                               #   Practice IDE if you subscribe to free "Judge0 CE")
