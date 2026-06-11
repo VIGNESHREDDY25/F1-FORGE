@@ -55,7 +55,15 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
   return res.json({ token, user: sanitizeUser(user) });
 });
 
+// Which social providers are configured — lets the client hide broken buttons.
+router.get('/providers', (_req, res) => {
+  res.json({ google: !!(config.google.clientId && config.google.clientSecret) });
+});
+
 router.get('/google', (_req, res) => {
+  if (!config.google.clientId || !config.google.clientSecret) {
+    return res.redirect(`${config.clientUrl}/login?error=google_unconfigured`);
+  }
   const params = new URLSearchParams({
     client_id: config.google.clientId,
     redirect_uri: config.google.callbackUrl,

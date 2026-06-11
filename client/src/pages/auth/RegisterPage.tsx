@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../api/client';
@@ -9,6 +10,13 @@ export default function RegisterPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' });
   const [loading, setLoading] = useState(false);
+
+  const { data: providers } = useQuery({
+    queryKey: ['auth-providers'],
+    queryFn: () => api.get('/auth/providers').then(r => r.data).catch(() => ({ google: false })),
+    staleTime: Infinity,
+  });
+  const googleEnabled = providers?.google ?? false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,19 +37,23 @@ export default function RegisterPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
       <p className="text-gray-500 text-sm mb-6">Join F1Forge — built for international students</p>
 
-      <a href="/api/auth/google" className="btn-secondary w-full justify-center mb-4 py-2.5">
-        <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
-        Continue with Google
-      </a>
+      {googleEnabled && (
+        <>
+          <a href="/api/auth/google" className="btn-secondary w-full justify-center mb-4 py-2.5">
+            <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
+            Continue with Google
+          </a>
 
-      <div className="relative mb-4">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="px-3 bg-white text-xs text-gray-400">or sign up with email</span>
-        </div>
-      </div>
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-white text-xs text-gray-400">or sign up with email</span>
+            </div>
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">

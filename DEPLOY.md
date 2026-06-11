@@ -44,6 +44,20 @@ That URL is what you put on LinkedIn. New users register their own accounts.
   JS — no setup. For unlimited/all-language, set `PISTON_URL` to a self-hosted
   Piston (see `docker-compose.yml`).
 
+## Enabling "Continue with Google" (optional)
+The Google button only appears when OAuth credentials are configured; without
+them it stays hidden (email/password login always works). To enable it:
+
+1. Go to https://console.cloud.google.com → create a project →
+   **APIs & Services → Credentials → Create credentials → OAuth client ID**.
+2. Application type: **Web application**.
+   - Authorized redirect URI: `https://f1forge.onrender.com/api/auth/google/callback`
+3. In Render → your service → **Environment**, add:
+   - `GOOGLE_CLIENT_ID` — from the OAuth client
+   - `GOOGLE_CLIENT_SECRET` — from the OAuth client
+   - `GOOGLE_CALLBACK_URL` — `https://f1forge.onrender.com/api/auth/google/callback`
+4. Save — Render redeploys and the button appears automatically.
+
 ## Local production test (optional)
 ```bash
 npm run build
