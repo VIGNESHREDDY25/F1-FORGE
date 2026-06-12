@@ -5,6 +5,51 @@ import { MessageSquare, Plus, Copy, Check, Lightbulb, FileText, ChevronDown, Che
 import api from '../api/client';
 import type { NetworkingMessage } from '../types';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/authStore';
+
+// LinkedIn people-search shortcuts for the extracted company — recruiters,
+// your university's alumni, and peers in the same role.
+function PeopleToReachOut({ company, role }: { company: string; role: string }) {
+  const user = useAuthStore(s => s.user);
+  const university = (user as any)?.university || '';
+  const enc = encodeURIComponent;
+  const targets = [
+    {
+      icon: '🧲', label: `Recruiters at ${company}`,
+      desc: 'They decide who gets a first call — connect with 2-3.',
+      url: `https://www.linkedin.com/search/results/people/?keywords=${enc(`"${company}" recruiter OR "talent acquisition"`)}`,
+    },
+    {
+      icon: '🎓', label: university ? `${university} alumni at ${company}` : `Alumni at ${company}`,
+      desc: 'Alumni reply 3-4x more often — your warmest path to a referral.',
+      url: `https://www.linkedin.com/search/results/people/?keywords=${enc(`"${company}" ${university ? `"${university}"` : 'alumni'}`)}`,
+    },
+    {
+      icon: '👩‍💻', label: `${role || 'People'} at ${company}`,
+      desc: 'Future teammates — ask about the team, not for a job.',
+      url: `https://www.linkedin.com/search/results/people/?keywords=${enc(`"${company}" "${role || 'engineer'}"`)}`,
+    },
+  ];
+  return (
+    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 p-4">
+      <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-2">
+        People you can reach out to for this job
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {targets.map(t => (
+          <a key={t.label} href={t.url} target="_blank" rel="noopener noreferrer"
+            className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-3 hover:border-emerald-400 hover:shadow-sm transition-all group">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+              {t.icon} {t.label}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.desc}</p>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1.5 group-hover:underline">Open LinkedIn search →</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const MESSAGE_TYPES = [
   { value: 'linkedin_connect', label: 'LinkedIn Connection' },
@@ -254,6 +299,9 @@ export default function NetworkingPage() {
                 </a>
               )}
             </div>
+
+            {/* People you can reach out to for this job */}
+            {hmResult.company && <PeopleToReachOut company={hmResult.company} role={hmResult.role} />}
 
             <div className="rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 p-4">
               <div className="flex items-center justify-between mb-2">

@@ -16,10 +16,10 @@ import ResumePage from './pages/ResumePage';
 import SalaryHubPage from './pages/SalaryHubPage';
 import CompliancePage from './pages/CompliancePage';
 import AssistantPage from './pages/AssistantPage';
-import ReferralsPage from './pages/ReferralsPage';
 import PracticePage from './pages/PracticePage';
 import AdminPage from './pages/AdminPage';
-import NetworkingPage from './pages/NetworkingPage';
+import NetworkingHubPage from './pages/NetworkingHubPage';
+import MockInterviewPage from './pages/MockInterviewPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -58,11 +58,11 @@ export default function App() {
           <Route path="/companies" element={<ErrorBoundary><SalaryHubPage initialTab="companies" /></ErrorBoundary>} />
           <Route path="/compliance" element={<ErrorBoundary><CompliancePage /></ErrorBoundary>} />
           <Route path="/assistant" element={<ErrorBoundary><AssistantPage /></ErrorBoundary>} />
-          <Route path="/referrals" element={<ErrorBoundary><ReferralsPage /></ErrorBoundary>} />
+          <Route path="/referrals" element={<ErrorBoundary><NetworkingHubPage initialTab="referrals" /></ErrorBoundary>} />
           <Route path="/practice" element={<ErrorBoundary><PracticePage /></ErrorBoundary>} />
           <Route path="/admin" element={<ErrorBoundary><AdminPage /></ErrorBoundary>} />
-          <Route path="/interviews" element={<Navigate to="/practice" replace />} />
-          <Route path="/networking" element={<ErrorBoundary><NetworkingPage /></ErrorBoundary>} />
+          <Route path="/interviews" element={<ErrorBoundary><MockInterviewPage /></ErrorBoundary>} />
+          <Route path="/networking" element={<ErrorBoundary><NetworkingHubPage initialTab="networking" /></ErrorBoundary>} />
           <Route path="/profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Route>

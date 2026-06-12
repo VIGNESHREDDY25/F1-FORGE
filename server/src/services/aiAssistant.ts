@@ -340,6 +340,29 @@ ${params.userName || '[Your Name]'}`;
   return { message, connectionNote };
 }
 
+// ── Self LinkedIn-profile extraction (user pastes their own profile blob) ────
+export async function extractLinkedInProfile(profileText: string): Promise<{ university?: string; major?: string; skills?: string[] } | null> {
+  if (openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          { role: 'system', content: 'Extract structured data from a raw LinkedIn profile copy-paste. Return JSON only: {"university": "<most recent university or empty>", "major": "<degree field or empty>", "skills": ["up to 12 technical skills"]}' },
+          { role: 'user', content: profileText.slice(0, 4000) },
+        ],
+        temperature: 0,
+        response_format: { type: 'json_object' },
+      });
+      const p = JSON.parse(response.choices[0].message.content || '{}');
+      return { university: p.university || undefined, major: p.major || undefined, skills: Array.isArray(p.skills) ? p.skills : undefined };
+    } catch { /* fall through to heuristics */ }
+  }
+  // Heuristics: find a line mentioning University/College/Institute
+  const uniLine = profileText.split('\n').map(l => l.trim())
+    .find(l => /universit|college|institute of/i.test(l) && l.length < 80);
+  return uniLine ? { university: uniLine.replace(/[·•|].*$/, '').trim() } : null;
+}
+
 // ── Paste-and-go console: raw JD blob + raw profile blob → structured card ───
 export interface ParsedOutreach {
   name: string;
@@ -391,6 +414,7 @@ export async function parseAndGenerateOutreach(params: {
   userSkills?: string[];
   userLinkedin?: string;
   resumeText?: string;     // latest uploaded resume — grounds the message in real experience
+  linkedinText?: string;   // user's own pasted LinkedIn profile — adds background context
 }): Promise<ParsedOutreach> {
   const heur = heuristicParse(params.jdText, params.managerText);
   const linkedinUrl = params.managerLinkedin || heur.linkedinUrl;
@@ -413,6 +437,9 @@ The message must be confident and specific, never desperate. Use the candidate's
 ${params.resumeText ? `
 CANDIDATE RESUME (pull 1 concrete, relevant achievement from here):
 ${params.resumeText.slice(0, 2500)}
+` : ''}${params.linkedinText ? `
+CANDIDATE'S OWN LINKEDIN PROFILE (background context):
+${params.linkedinText.slice(0, 1500)}
 ` : ''}
 RAW JOB DESCRIPTION PASTE:
 ${params.jdText.slice(0, 3000)}

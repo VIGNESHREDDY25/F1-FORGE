@@ -5,6 +5,7 @@ import { findOne, insert, update } from '../db/store';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { config } from '../config';
+import { extractLinkedInProfile } from '../services/aiAssistant';
 
 const router = Router();
 
@@ -127,6 +128,33 @@ router.patch('/profile', authenticate, async (req: AuthRequest, res: Response) =
 
   const user = update('users', req.user!.id, { ...updates, profile_complete_pct: pct });
   res.json(sanitizeUser(user!));
+});
+
+// ── LinkedIn self-import: paste your own profile blob once, F1Forge extracts
+// your headline/university/skills and grounds every outreach message in it ───
+router.post('/linkedin-import', authenticate, async (req: AuthRequest, res: Response) => {
+  const { profileText, linkedinUrl } = req.body as { profileText?: string; linkedinUrl?: string };
+  if (!profileText || profileText.trim().length < 20) {
+    return res.status(400).json({ error: 'Paste your LinkedIn profile text (select-all → copy from your profile page)' });
+  }
+
+  const updates: Record<string, any> = {
+    linkedin_text: profileText.slice(0, 10000),
+  };
+  const urlFromText = (profileText.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[^\s,)>"']+/i) || [])[0];
+  if (linkedinUrl || urlFromText) updates.linkedin_url = linkedinUrl || urlFromText;
+
+  // Best-effort structured extraction — only fills fields that are empty.
+  const current = findOne<any>('users', (u: any) => u.id === req.user!.id)!;
+  const extracted = await extractLinkedInProfile(profileText);
+  if (extracted) {
+    if (extracted.university && !current.university) updates.university = extracted.university;
+    if (extracted.major && !current.major) updates.major = extracted.major;
+    if (extracted.skills?.length && (!current.tech_stack || !current.tech_stack.length)) updates.tech_stack = extracted.skills.slice(0, 12);
+  }
+
+  const user = update('users', req.user!.id, updates);
+  res.json({ user: sanitizeUser(user!), extracted: extracted || null });
 });
 
 export default router;

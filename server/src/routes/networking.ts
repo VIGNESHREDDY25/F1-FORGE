@@ -63,6 +63,7 @@ router.post('/hiring-manager', validate(hiringManagerSchema), async (req: AuthRe
     userSkills: user?.tech_stack,
     userLinkedin: user?.linkedin_url,
     resumeText: latestResume || undefined,
+    linkedinText: user?.linkedin_text || undefined,
   });
   res.json({ ...result, usedResume: !!latestResume });
 });

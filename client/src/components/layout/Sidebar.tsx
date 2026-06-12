@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, FileText, Shield,
-  Bot, Users, Code2, MessageSquare, User, ChevronRight, Search,
-  TrendingUp, ShieldCheck, Settings,
+  Bot, Code2, MessageSquare, User, ChevronRight, Search,
+  TrendingUp, ShieldCheck, Settings, Mic,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -11,33 +11,28 @@ const ADMIN_EMAILS = ['moluguvigneshreddy2@gmail.com'];
 
 const navGroups = [
   {
-    label: 'Overview',
+    label: 'Core',
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/job-discovery', icon: Search, label: 'Job Discovery', badge: 'LIVE' },
-    ],
-  },
-  {
-    label: 'Career Tools',
-    items: [
-      { to: '/jobs', icon: Briefcase, label: 'Applications & Analytics' },
       { to: '/resume', icon: FileText, label: 'Resume Optimizer' },
-      { to: '/salary', icon: TrendingUp, label: 'Salary & H1B Sponsors' },
+      { to: '/networking', icon: MessageSquare, label: 'Networking & Referrals' },
     ],
   },
   {
-    label: 'Visa & Compliance',
-    items: [
-      { to: '/compliance', icon: Shield, label: 'OPT/CPT Tracker' },
-    ],
-  },
-  {
-    label: 'AI & Networking',
+    label: 'AI & Prep',
     items: [
       { to: '/assistant', icon: Bot, label: 'AI Assistant' },
       { to: '/practice', icon: Code2, label: 'Practice', badge: 'IDE' },
-      { to: '/referrals', icon: Users, label: 'Referral Finder' },
-      { to: '/networking', icon: MessageSquare, label: 'Networking' },
+      { to: '/interviews', icon: Mic, label: 'Mock Interview', badge: 'NEW' },
+    ],
+  },
+  {
+    label: 'Track & Plan',
+    items: [
+      { to: '/jobs', icon: Briefcase, label: 'Applications & Analytics' },
+      { to: '/compliance', icon: Shield, label: 'OPT/CPT Tracker' },
+      { to: '/salary', icon: TrendingUp, label: 'Salary & H1B Sponsors' },
     ],
   },
 ];

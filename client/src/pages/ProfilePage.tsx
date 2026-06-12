@@ -58,6 +58,21 @@ export default function ProfilePage() {
 
   const pct = user?.profileCompletePct ?? 0;
 
+  const [liPaste, setLiPaste] = useState('');
+  const [liUrl, setLiUrl] = useState('');
+  const liImportMutation = useMutation({
+    mutationFn: () => api.post('/auth/linkedin-import', { profileText: liPaste, linkedinUrl: liUrl || undefined }).then(r => r.data),
+    onSuccess: (data) => {
+      setUser(data.user);
+      setLiPaste('');
+      const got = data.extracted;
+      toast.success(got?.university
+        ? `Imported! Detected ${got.university}${got.skills?.length ? ` + ${got.skills.length} skills` : ''}`
+        : 'LinkedIn profile imported — outreach messages will now use it');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Import failed'),
+  });
+
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
@@ -80,6 +95,37 @@ export default function ProfilePage() {
             <CheckCircle2 size={14} /> <span className="text-xs">Profile complete — all features unlocked</span>
           </div>
         )}
+      </div>
+
+      {/* LinkedIn self-import */}
+      <div className="card p-5 border-2 border-blue-200 dark:border-blue-900">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-lg">💼</span>
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Import your LinkedIn profile</h2>
+          {(user as any)?.linkedinUrl && <span className="badge badge-green text-[10px]">Connected</span>}
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Open your own LinkedIn profile, select-all → copy → paste below. F1Forge pulls your background from it and uses it to personalize every outreach message, alongside your resume.
+        </p>
+        <textarea
+          className="input min-h-[100px] font-mono text-xs mb-2"
+          placeholder={'Paste your LinkedIn profile text here…'}
+          value={liPaste}
+          onChange={e => setLiPaste(e.target.value)}
+        />
+        <input
+          className="input mb-3"
+          placeholder="Your LinkedIn URL (e.g. https://www.linkedin.com/in/you)"
+          value={liUrl}
+          onChange={e => setLiUrl(e.target.value)}
+        />
+        <button
+          onClick={() => liImportMutation.mutate()}
+          disabled={liImportMutation.isPending || liPaste.trim().length < 20}
+          className="btn-primary"
+        >
+          {liImportMutation.isPending ? 'Importing…' : 'Import profile'}
+        </button>
       </div>
 
       {/* Avatar */}
