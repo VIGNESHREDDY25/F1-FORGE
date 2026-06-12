@@ -103,6 +103,7 @@ export default function NetworkingPage() {
   const [hmResult, setHmResult] = useState<{
     name: string; title: string; company: string; role: string;
     linkedinUrl: string; message: string; connectionNote: string;
+    usedResume?: boolean;
   } | null>(null);
   const [hmSaved, setHmSaved] = useState(false);
 
@@ -266,13 +267,21 @@ export default function NetworkingPage() {
             </div>
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">LinkedIn message <span className="font-normal normal-case text-gray-400">(send after they accept)</span></p>
+                <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                  LinkedIn message <span className="font-normal normal-case text-gray-400">(send after they accept)</span>
+                  {hmResult.usedResume && <span className="badge badge-green text-[10px] ml-2 normal-case">📄 Personalized from your resume</span>}
+                </p>
                 <button className="btn-secondary text-xs py-1 px-2"
                   onClick={() => { navigator.clipboard.writeText(hmResult.message); toast.success('Message copied!'); }}>
                   <Copy size={11} /> Copy
                 </button>
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{hmResult.message}</p>
+              {!hmResult.usedResume && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  💡 Run your resume through the <Link to="/resume" className="underline">Resume Optimizer</Link> once and these messages will cite your real projects automatically.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

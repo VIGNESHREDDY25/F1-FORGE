@@ -390,6 +390,7 @@ export async function parseAndGenerateOutreach(params: {
   userMajor?: string;
   userSkills?: string[];
   userLinkedin?: string;
+  resumeText?: string;     // latest uploaded resume — grounds the message in real experience
 }): Promise<ParsedOutreach> {
   const heur = heuristicParse(params.jdText, params.managerText);
   const linkedinUrl = params.managerLinkedin || heur.linkedinUrl;
@@ -404,12 +405,15 @@ export async function parseAndGenerateOutreach(params: {
             role: 'system',
             content: `You extract structured data from raw LinkedIn copy-paste blobs and write outreach for an international student (F1 visa). Return JSON only:
 {"name": "<hiring manager full name>", "title": "<their job title>", "company": "<company>", "role": "<the job being applied for>", "linkedinUrl": "<their linkedin profile url, or empty string>", "message": "<LinkedIn DM to send after connecting, under 150 words, references 1-2 specifics from the JD and 1 specific from the manager's profile>", "connectionNote": "<connection request note, under 280 chars>"}
-The message must be confident and specific, never desperate. Use the candidate's real background.`,
+The message must be confident and specific, never desperate. Use the candidate's real background — when a resume is provided, cite one concrete project or achievement from it that matches the JD.`,
           },
           {
             role: 'user',
             content: `CANDIDATE: ${params.userName || 'a student'}, ${params.userMajor || 'CS'} at ${params.userUniversity || 'university'}${skills ? `, skilled in ${skills}` : ''}.
-
+${params.resumeText ? `
+CANDIDATE RESUME (pull 1 concrete, relevant achievement from here):
+${params.resumeText.slice(0, 2500)}
+` : ''}
 RAW JOB DESCRIPTION PASTE:
 ${params.jdText.slice(0, 3000)}
 

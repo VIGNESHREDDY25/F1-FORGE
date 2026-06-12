@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import multer from 'multer';
-import { findAll, findOne, insert } from '../db/store';
+import { findAll, findOne, insert, update } from '../db/store';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { extractTextFromBuffer } from '../services/resumeParser';
 import { aiClient, hasAI, AI_MODEL } from '../services/aiClient';
@@ -118,6 +118,7 @@ router.post('/optimize', upload.single('resume'), async (req: AuthRequest, res: 
     const resumeText = await extractTextFromBuffer(req.file.buffer, req.file.mimetype);
     const result = await runRichOptimize(resumeText, jobDescription);
 
+    update('users', req.user!.id, { resume_text: resumeText.slice(0, 10000) });
     const optimization = insert('resume_optimizations', {
       user_id: req.user!.id,
       resume_text: resumeText.slice(0, 10000),
@@ -165,6 +166,10 @@ router.post(
     if (!resumeText.trim()) {
       return res.status(400).json({ error: 'Resume text or file is required' });
     }
+
+    // Remember the latest resume on the profile — the hiring-manager outreach
+    // console uses it to ground messages in real experience.
+    update('users', req.user!.id, { resume_text: resumeText.slice(0, 10000) });
 
     try {
       let docBuffer: Buffer;

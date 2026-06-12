@@ -47,6 +47,12 @@ router.post('/hiring-manager', validate(hiringManagerSchema), async (req: AuthRe
   const { jobDescription, hiringManagerInfo, hiringManagerLinkedin } = req.body;
   const user = findOne<any>('users', u => u.id === req.user!.id);
 
+  // Latest uploaded resume (profile copy first, then Resume Optimizer history)
+  // grounds the message in real experience instead of generic profile facts.
+  const latestResume = user?.resume_text
+    || findAll<any>('resume_optimizations', r => r.user_id === req.user!.id)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.resume_text;
+
   const result = await parseAndGenerateOutreach({
     jdText: jobDescription,
     managerText: hiringManagerInfo,
@@ -56,8 +62,9 @@ router.post('/hiring-manager', validate(hiringManagerSchema), async (req: AuthRe
     userMajor: user?.major,
     userSkills: user?.tech_stack,
     userLinkedin: user?.linkedin_url,
+    resumeText: latestResume || undefined,
   });
-  res.json(result);
+  res.json({ ...result, usedResume: !!latestResume });
 });
 
 const hiringManagerSaveSchema = z.object({
