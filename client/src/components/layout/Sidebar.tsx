@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Briefcase, FileText, Shield, Building2,
+  LayoutDashboard, Briefcase, FileText, Shield,
   Bot, Users, Code2, MessageSquare, User, ChevronRight, Search,
-  TrendingUp, BarChart3, ShieldCheck, Settings,
+  TrendingUp, ShieldCheck, Settings,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -15,22 +15,20 @@ const navGroups = [
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/job-discovery', icon: Search, label: 'Job Discovery', badge: 'LIVE' },
-      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     ],
   },
   {
     label: 'Career Tools',
     items: [
-      { to: '/jobs', icon: Briefcase, label: 'Application Tracker' },
+      { to: '/jobs', icon: Briefcase, label: 'Applications & Analytics' },
       { to: '/resume', icon: FileText, label: 'Resume Optimizer' },
-      { to: '/salary', icon: TrendingUp, label: 'Salary Insights' },
+      { to: '/salary', icon: TrendingUp, label: 'Salary & H1B Sponsors' },
     ],
   },
   {
     label: 'Visa & Compliance',
     items: [
       { to: '/compliance', icon: Shield, label: 'OPT/CPT Tracker' },
-      { to: '/companies', icon: Building2, label: 'H1B Companies' },
     ],
   },
   {

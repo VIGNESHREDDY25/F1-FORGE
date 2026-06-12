@@ -10,16 +10,14 @@ import RegisterPage from './pages/auth/RegisterPage';
 import AuthCallbackPage from './pages/auth/AuthCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
-import JobsPage from './pages/JobsPage';
+import JobsHubPage from './pages/JobsHubPage';
 import JobDiscoveryPage from './pages/JobDiscoveryPage';
 import ResumePage from './pages/ResumePage';
-import SalaryPage from './pages/SalaryPage';
+import SalaryHubPage from './pages/SalaryHubPage';
 import CompliancePage from './pages/CompliancePage';
-import CompaniesPage from './pages/CompaniesPage';
 import AssistantPage from './pages/AssistantPage';
 import ReferralsPage from './pages/ReferralsPage';
 import PracticePage from './pages/PracticePage';
-import AnalyticsPage from './pages/AnalyticsPage';
 import AdminPage from './pages/AdminPage';
 import NetworkingPage from './pages/NetworkingPage';
 import ProfilePage from './pages/ProfilePage';
@@ -53,15 +51,15 @@ export default function App() {
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
           <Route path="/job-discovery" element={<ErrorBoundary><JobDiscoveryPage /></ErrorBoundary>} />
-          <Route path="/jobs" element={<ErrorBoundary><JobsPage /></ErrorBoundary>} />
+          <Route path="/jobs" element={<ErrorBoundary><JobsHubPage initialTab="tracker" /></ErrorBoundary>} />
+          <Route path="/analytics" element={<ErrorBoundary><JobsHubPage initialTab="analytics" /></ErrorBoundary>} />
           <Route path="/resume" element={<ErrorBoundary><ResumePage /></ErrorBoundary>} />
-          <Route path="/salary" element={<ErrorBoundary><SalaryPage /></ErrorBoundary>} />
+          <Route path="/salary" element={<ErrorBoundary><SalaryHubPage initialTab="salary" /></ErrorBoundary>} />
+          <Route path="/companies" element={<ErrorBoundary><SalaryHubPage initialTab="companies" /></ErrorBoundary>} />
           <Route path="/compliance" element={<ErrorBoundary><CompliancePage /></ErrorBoundary>} />
-          <Route path="/companies" element={<ErrorBoundary><CompaniesPage /></ErrorBoundary>} />
           <Route path="/assistant" element={<ErrorBoundary><AssistantPage /></ErrorBoundary>} />
           <Route path="/referrals" element={<ErrorBoundary><ReferralsPage /></ErrorBoundary>} />
           <Route path="/practice" element={<ErrorBoundary><PracticePage /></ErrorBoundary>} />
-          <Route path="/analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
           <Route path="/admin" element={<ErrorBoundary><AdminPage /></ErrorBoundary>} />
           <Route path="/interviews" element={<Navigate to="/practice" replace />} />
           <Route path="/networking" element={<ErrorBoundary><NetworkingPage /></ErrorBoundary>} />
