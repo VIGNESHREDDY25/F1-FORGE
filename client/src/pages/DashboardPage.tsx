@@ -25,6 +25,12 @@ export default function DashboardPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  const { data: todayPlan } = useQuery<{ date: string; items: { id: string; emoji: string; title: string; detail: string; link: string }[] }>({
+    queryKey: ['today-plan'],
+    queryFn: () => api.get('/dashboard/today-plan').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
   if (isLoading) return <PageSkeleton />;
 
   const apps = data?.applications;
@@ -216,8 +222,42 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-500 mt-0.5">March 1, {h1bCountdown.year} — Start finding sponsors now</p>
         </Link>
 
-        <div className="lg:col-span-2 grid grid-cols-1 gap-4">
-          {/* empty space placeholder — the main content below fills the rest of the row */}
+        {/* Today's Plan — prioritized daily actions from the user's own data */}
+        <div className="lg:col-span-2 card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              ☀️ Today's Plan
+            </h2>
+            <span className="text-xs text-gray-400">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          {!todayPlan?.items?.length ? (
+            <p className="text-sm text-gray-400 py-6 text-center">All caught up — nothing urgent today 🎉</p>
+          ) : (
+            <div className="space-y-2">
+              {todayPlan.items.map((item, i) => (
+                <Link
+                  key={item.id}
+                  to={item.link}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors group"
+                >
+                  <span className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                      {item.emoji} {item.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.detail}</p>
+                  </div>
+                  <span className="text-xs text-brand-600 dark:text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1">
+                    Go →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
