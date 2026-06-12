@@ -289,10 +289,24 @@ function gradientFor(seed: string) {
   return NEWS_GRADIENTS[h % NEWS_GRADIENTS.length];
 }
 
+// Free AI image for articles without one — keyed off the headline so every
+// card gets a relevant visual and the feed looks uniform.
+function aiImageUrl(article: any): string {
+  const topic = (article.title || article.category || 'technology news').slice(0, 120);
+  const prompt = encodeURIComponent(`professional news editorial illustration, ${topic}, modern flat style, no text`);
+  // Seed keeps the image stable across re-renders for the same article
+  let seed = 0;
+  const s = article.id || article.title || '';
+  for (let i = 0; i < s.length; i++) seed = (seed * 31 + s.charCodeAt(i)) % 100000;
+  return `https://image.pollinations.ai/prompt/${prompt}?width=480&height=240&nologo=true&seed=${seed}`;
+}
+
 function NewsImage({ article }: { article: any }) {
   const [error, setError] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const grad = gradientFor(article.title || article.id || article.source || 'news');
   const showReal = article.image && !error;
+  const showAi = !showReal && !aiError;
   return (
     <div className="h-36 relative overflow-hidden">
       {/* Branded gradient always sits underneath — guarantees a visual for every article */}
@@ -309,6 +323,15 @@ function NewsImage({ article }: { article: any }) {
           loading="lazy"
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={() => setError(true)}
+        />
+      )}
+      {showAi && (
+        <img
+          src={aiImageUrl(article)}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={() => setAiError(true)}
         />
       )}
       <span className="absolute bottom-2 left-2 z-10 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-black/55 text-white backdrop-blur-sm">

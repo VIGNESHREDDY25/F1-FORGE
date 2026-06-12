@@ -111,9 +111,12 @@ function mapJSearchJob(j: any): JobListing {
 // ─── LinkedIn jobs (primary source — real postings, logos, server-side filters) ──
 export interface JobFilters {
   datePosted?: string;   // '1h' | '5h' | '24h' | '3days' | '5days' | 'week' | 'month' | ''
-  remote?: boolean;
+  remote?: boolean;      // legacy — kept for old clients; workType supersedes it
+  workType?: string;     // 'onsite' | 'remote' | 'hybrid'
   jobType?: string;      // 'full-time' | 'part-time' | 'contract' | 'internship'
   expLevel?: string;     // 'internship' | 'entry' | 'associate' | 'mid' | 'senior' | 'director' | 'executive'
+  salaryMin?: number;    // annual USD — mapped to LinkedIn f_SB2 salary buckets
+  easyApply?: boolean;   // LinkedIn f_AL=true
   pages?: number;        // how many 25-result pages to pull
 }
 
@@ -139,12 +142,30 @@ const LI_EXP: Record<string, string> = {
   executive:  '6',
 };
 
+// LinkedIn f_WT workplace-type codes
+const LI_WT: Record<string, string> = { onsite: '1', remote: '2', hybrid: '3' };
+
+// LinkedIn f_SB2 salary buckets: 1=$40k+ … 9=$200k+ in $20k steps
+function salaryBucket(min: number): string | null {
+  if (!min || min < 40000) return null;
+  return String(Math.min(9, Math.floor((min - 20000) / 20000)));
+}
+
 function buildLinkedInUrl(query: string, location: string, filters: JobFilters, start: number): string {
   const p = new URLSearchParams({ keywords: query, location: location || 'United States', start: String(start) });
-  if (filters.datePosted && LI_TPR[filters.datePosted]) p.set('f_TPR', LI_TPR[filters.datePosted]);
-  if (filters.remote) p.set('f_WT', '2');
+  if (filters.datePosted && LI_TPR[filters.datePosted]) {
+    p.set('f_TPR', LI_TPR[filters.datePosted]);
+    p.set('sortBy', 'DD'); // freshest first when a time window is active
+  }
+  const wt = filters.workType ? LI_WT[filters.workType] : filters.remote ? '2' : '';
+  if (wt) p.set('f_WT', wt);
   if (filters.jobType && LI_JT[filters.jobType]) p.set('f_JT', LI_JT[filters.jobType]);
   if (filters.expLevel && LI_EXP[filters.expLevel]) p.set('f_E', LI_EXP[filters.expLevel]);
+  if (filters.salaryMin) {
+    const sb = salaryBucket(filters.salaryMin);
+    if (sb) p.set('f_SB2', sb);
+  }
+  if (filters.easyApply) p.set('f_AL', 'true');
   return `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?${p}`;
 }
 
@@ -164,7 +185,7 @@ async function fetchLinkedInPage(url: string): Promise<JobListing[]> {
 }
 
 async function fetchLinkedInJobs(query: string, location: string, filters: JobFilters = {}): Promise<JobListing[]> {
-  const pages = Math.min(filters.pages ?? 6, 10); // up to ~250 jobs (10 pages × 25)
+  const pages = Math.min(filters.pages ?? 8, 10); // up to ~250 jobs (10 pages × 25)
   const urls = Array.from({ length: pages }, (_, i) => buildLinkedInUrl(query, location, filters, i * 25));
   const settled = await Promise.allSettled(urls.map(fetchLinkedInPage));
 
@@ -475,7 +496,7 @@ async function gatherJobs(
   location: string,
   filters: JobFilters = {}
 ): Promise<{ jobs: JobListing[]; source: string }> {
-  const cacheKey = `${q}|${location}|${filters.datePosted || ''}|${filters.remote ? 'r' : ''}|${filters.jobType || ''}|${filters.expLevel || ''}`.toLowerCase();
+  const cacheKey = `${q}|${location}|${filters.datePosted || ''}|${filters.workType || (filters.remote ? 'remote' : '')}|${filters.jobType || ''}|${filters.expLevel || ''}|${filters.salaryMin || ''}|${filters.easyApply ? 'ea' : ''}`.toLowerCase();
   const cached = rawGet('job_cache', cacheKey);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
     return { jobs: cached.jobs as JobListing[], source: cached.source };
@@ -527,8 +548,11 @@ function parseFilters(qs: Record<string, string>): JobFilters {
   return {
     datePosted: qs.datePosted || qs.postedWithin || '',
     remote: qs.remote === 'true',
+    workType: qs.workType || '',
     jobType: qs.jobType || '',
     expLevel: qs.expLevel || '',
+    salaryMin: qs.salaryMin ? parseInt(qs.salaryMin) : undefined,
+    easyApply: qs.easyApply === 'true',
   };
 }
 
@@ -569,20 +593,24 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     }
   }
 
-  // Strictly honor the selected time window — JSearch collapses 1h/5h/24h into
-  // "today", so without this cutoff "Past 1 hour" and "Past 24 hours" show the
-  // exact same list. Always sort newest-first so fresh postings lead.
+  // Always newest-first so fresh postings lead.
   jobs = jobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+
+  // Exact-time cutoff ONLY for JSearch: it collapses 1h/5h/24h into "today",
+  // so without this "Past 1 hour" and "Past 24 hours" show the same list.
+  // LinkedIn results must NOT be cut — LinkedIn already filters server-side
+  // via f_TPR but only exposes date-granular timestamps (midnight), so an
+  // exact cutoff here would wrongly drop jobs posted earlier today.
   const windowMs: Record<string, number> = {
     '1h': 3600_000, '5h': 18_000_000, '24h': 86_400_000,
     '3days': 259_200_000, '5days': 432_000_000, 'week': 604_800_000, 'month': 2_592_000_000,
   };
-  if (source !== 'curated' && filters.datePosted && windowMs[filters.datePosted]) {
+  if (source === 'jsearch' && filters.datePosted && windowMs[filters.datePosted]) {
     const cutoff = Date.now() - windowMs[filters.datePosted];
     const fresh = jobs.filter(j => new Date(j.postedAt).getTime() >= cutoff);
-    // Short windows can legitimately be empty — show the honest (possibly
-    // smaller) list rather than repeating stale results.
-    jobs = fresh;
+    // Keep the honest filtered list, but never blank the page entirely —
+    // fall back to the freshest 15 if the strict window is empty.
+    jobs = fresh.length ? fresh : jobs.slice(0, 15);
   }
 
   res.json({ jobs, total: jobs.length, source });

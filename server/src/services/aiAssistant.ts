@@ -308,6 +308,69 @@ export async function generateNetworkingMessage(params: {
   return { message: content };
 }
 
+// ── Hiring-manager outreach: JD-aware personalized message ───────────────────
+interface HiringManagerParams {
+  hiringManagerName: string;
+  hiringManagerTitle?: string;
+  company: string;
+  role: string;
+  jobDescription: string;
+  userName?: string;
+  userUniversity?: string;
+  userMajor?: string;
+  userSkills?: string[];
+  userLinkedin?: string;
+}
+
+function hiringManagerTemplate(params: HiringManagerParams): { message: string; connectionNote: string } {
+  const firstName = params.hiringManagerName.split(/\s+/)[0];
+  const uni = params.userUniversity || 'my university';
+  const skills = (params.userSkills || []).slice(0, 4).join(', ');
+  const message = `Hi ${firstName},
+
+I came across the ${params.role} opening at ${params.company} and it immediately stood out — the responsibilities align closely with what I've been building${skills ? ` with ${skills}` : ''} during my studies at ${uni}.
+
+I'd love to bring that experience to your team. I know you likely review many applicants, so I'll keep it short: I've applied through the portal, and if my background looks like a fit, I'd really appreciate 15 minutes to introduce myself properly.
+
+Either way, thank you for your time${params.userLinkedin ? ` — my LinkedIn is ${params.userLinkedin}` : ''}.
+
+Best,
+${params.userName || '[Your Name]'}`;
+  const connectionNote = `Hi ${firstName}, I just applied for the ${params.role} role at ${params.company} — my background in ${skills || params.userMajor || 'this area'} from ${uni} maps closely to the JD. Would love to connect!`;
+  return { message, connectionNote };
+}
+
+export async function generateHiringManagerMessage(params: HiringManagerParams): Promise<{ message: string; connectionNote: string }> {
+  if (!openai) return hiringManagerTemplate(params);
+
+  try {
+    const skills = (params.userSkills || []).slice(0, 4).join(', ');
+    const response = await openai.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a career coach writing outreach from an international student (F1 visa) to a hiring manager. Messages must be specific to the job description, concise, confident, never desperate. Return JSON only: {"message": "<full LinkedIn DM / email body, under 150 words>", "connectionNote": "<LinkedIn connection request note, under 280 chars>"}',
+        },
+        {
+          role: 'user',
+          content: `Hiring manager: ${params.hiringManagerName}${params.hiringManagerTitle ? `, ${params.hiringManagerTitle}` : ''} at ${params.company}.
+Role: ${params.role}.
+Candidate: ${params.userName || 'a student'}, ${params.userMajor || 'CS'} at ${params.userUniversity || 'university'}${skills ? `, skilled in ${skills}` : ''}.
+Job description (reference 1-2 specific details from it):
+${params.jobDescription.slice(0, 2500)}`,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+    });
+
+    const p = JSON.parse(response.choices[0].message.content || '{}');
+    if (p.message && p.connectionNote) return { message: p.message, connectionNote: p.connectionNote };
+  } catch { /* AI unavailable or bad JSON — fall back */ }
+  return hiringManagerTemplate(params);
+}
+
 export async function optimizeResumeWithAI(resumeText: string, jobDescription: string) {
   if (!openai) {
     return {

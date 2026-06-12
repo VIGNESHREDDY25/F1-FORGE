@@ -99,6 +99,8 @@ export default function NetworkingPage() {
   const [copiedTemplateId, setCopiedTemplateId] = useState<string | null>(null);
   const [showTips, setShowTips] = useState(true);
   const [form, setForm] = useState({ messageType: 'linkedin_connect', targetName: '', targetCompany: '', targetRole: '', sharedContext: '' });
+  const [hmForm, setHmForm] = useState({ company: '', role: '', hiringManagerName: '', hiringManagerTitle: '', hiringManagerLinkedin: '', jobDescription: '' });
+  const [hmResult, setHmResult] = useState<{ message: string; connectionNote: string } | null>(null);
 
   const { data: messages = [] } = useQuery<NetworkingMessage[]>({
     queryKey: ['networking'],
@@ -120,6 +122,21 @@ export default function NetworkingPage() {
     mutationFn: ({ id, outcome }: any) => api.patch(`/networking/${id}/outcome`, { outcome }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['networking'] }); qc.invalidateQueries({ queryKey: ['networking-stats'] }); },
   });
+
+  const hiringManagerMutation = useMutation({
+    mutationFn: (data: typeof hmForm) => api.post('/networking/hiring-manager', data).then(r => r.data),
+    onSuccess: (data) => {
+      setHmResult({ message: data.generated_message ?? data.generatedMessage, connectionNote: data.connectionNote ?? data.connection_note });
+      qc.invalidateQueries({ queryKey: ['networking'] });
+      qc.invalidateQueries({ queryKey: ['networking-stats'] });
+      toast.success('Outreach generated and saved to your tracker!');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Could not generate — check the fields'),
+  });
+
+  const hmSearchUrl = hmForm.company
+    ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`"${hmForm.company}" hiring manager OR recruiter OR "engineering manager"`)}`
+    : '';
 
   function copyMessage(msg: NetworkingMessage) {
     const text = msg.subjectLine ? `Subject: ${msg.subjectLine}\n\n${msg.generatedMessage}` : msg.generatedMessage;
@@ -163,6 +180,97 @@ export default function NetworkingPage() {
           </p>
         </div>
         <Link to="/settings" className="btn-primary text-xs shrink-0 whitespace-nowrap">Connect LinkedIn</Link>
+      </div>
+
+      {/* ── Hiring Manager Console ── */}
+      <div className="card p-5 border-2 border-brand-200 dark:border-brand-800">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-lg">🎯</span>
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Hiring Manager Outreach</h2>
+          <span className="badge badge-purple text-[10px]">AI</span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Paste the job description and the hiring manager's details — get a personalized message + connection note, auto-saved to your tracker below.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="label">Company *</label>
+            <input className="input" placeholder="Google" value={hmForm.company}
+              onChange={e => setHmForm({ ...hmForm, company: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Role *</label>
+            <input className="input" placeholder="Software Engineer II" value={hmForm.role}
+              onChange={e => setHmForm({ ...hmForm, role: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Hiring manager name *</label>
+            <input className="input" placeholder="Jane Smith" value={hmForm.hiringManagerName}
+              onChange={e => setHmForm({ ...hmForm, hiringManagerName: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Their title (optional)</label>
+            <input className="input" placeholder="Engineering Manager, Search" value={hmForm.hiringManagerTitle}
+              onChange={e => setHmForm({ ...hmForm, hiringManagerTitle: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Their LinkedIn URL (optional)</label>
+            <input className="input" placeholder="https://www.linkedin.com/in/…" value={hmForm.hiringManagerLinkedin}
+              onChange={e => setHmForm({ ...hmForm, hiringManagerLinkedin: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Job description * <span className="text-gray-400 font-normal">(paste it in full — the AI references specifics from it)</span></label>
+            <textarea className="input min-h-[110px]" placeholder="Paste the full job description here…"
+              value={hmForm.jobDescription}
+              onChange={e => setHmForm({ ...hmForm, jobDescription: e.target.value })} />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => hiringManagerMutation.mutate(hmForm)}
+            disabled={hiringManagerMutation.isPending || !hmForm.company || !hmForm.role || !hmForm.hiringManagerName || hmForm.jobDescription.length < 30}
+            className="btn-primary"
+          >
+            {hiringManagerMutation.isPending
+              ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : '✨'} Generate outreach
+          </button>
+          {hmSearchUrl && (
+            <a href={hmSearchUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">
+              🔎 Find hiring managers at {hmForm.company} on LinkedIn
+            </a>
+          )}
+        </div>
+
+        {hmResult && (
+          <div className="mt-4 space-y-3 animate-fade-in">
+            <div className="rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase tracking-wide">Connection request note <span className="font-normal normal-case text-gray-400">(under 300 chars — send with your invite)</span></p>
+                <button className="btn-secondary text-xs py-1 px-2"
+                  onClick={() => { navigator.clipboard.writeText(hmResult.connectionNote); toast.success('Connection note copied!'); }}>
+                  <Copy size={11} /> Copy
+                </button>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{hmResult.connectionNote}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Full message <span className="font-normal normal-case text-gray-400">(LinkedIn DM or email after they accept)</span></p>
+                <button className="btn-secondary text-xs py-1 px-2"
+                  onClick={() => { navigator.clipboard.writeText(hmResult.message); toast.success('Message copied!'); }}>
+                  <Copy size={11} /> Copy
+                </button>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{hmResult.message}</p>
+            </div>
+            <p className="text-xs text-gray-400">
+              ✅ Saved to "Your Messages" below — update the outcome there when they reply so your response stats stay accurate.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats row */}

@@ -39,11 +39,12 @@ interface Job {
 
 interface Filters {
   h1bOnly: boolean;
-  remote: boolean;
+  workType: string;     // '' | 'remote' | 'hybrid' | 'onsite'
   jobType: string;
   expLevel: string;
   salaryMin: string;
   datePosted: string;
+  easyApply: boolean;
 }
 
 interface OutreachRow extends Job {
@@ -67,6 +68,15 @@ const ROLE_CHIPS = [
   'Software Engineer', 'Data Scientist', 'ML Engineer', 'Product Manager',
   'Data Engineer', 'DevOps Engineer', 'Security Engineer', 'Backend Engineer',
   'Frontend Engineer', 'Full Stack', 'Cloud Architect', 'SRE',
+  'Data Analyst', 'AI Engineer', 'QA Engineer', 'Mobile Engineer',
+  'Embedded Engineer', 'Business Analyst', 'Solutions Architect',
+];
+
+// Keyword refiners appended to the query — LinkedIn boolean-style narrowing.
+const KEYWORD_CHIPS = [
+  'New Grad', 'Entry Level', 'Visa Sponsorship', 'OPT', 'H1B',
+  'Python', 'Java', 'React', 'TypeScript', 'Go', 'AWS', 'Kubernetes',
+  'LLM', 'PyTorch', 'Spark', 'iOS', 'Android',
 ];
 
 const EXP_LABELS: Record<string, string> = {
@@ -119,7 +129,8 @@ export default function JobDiscoveryPage() {
   const [location, setLocation] = useState('United States');
   const [inputQuery, setInputQuery] = useState(initialQuery);
   const [inputLocation, setInputLocation] = useState('United States');
-  const [filters, setFilters] = useState<Filters>({ h1bOnly: false, remote: false, jobType: '', expLevel: '', salaryMin: '', datePosted: '24h' });
+  const [filters, setFilters] = useState<Filters>({ h1bOnly: false, workType: '', jobType: '', expLevel: '', salaryMin: '', datePosted: '24h', easyApply: false });
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [page] = useState(1);
@@ -131,19 +142,23 @@ export default function JobDiscoveryPage() {
   const [boardRows, setBoardRows] = useState<OutreachRow[]>([]);
   const [boardMeta, setBoardMeta] = useState<{ total: number; university: string; source: string } | null>(null);
 
-  const activeFilterCount = [filters.h1bOnly, filters.remote, filters.jobType, filters.expLevel, filters.salaryMin, filters.datePosted && filters.datePosted !== '24h' ? filters.datePosted : ''].filter(Boolean).length;
+  const activeFilterCount = [filters.h1bOnly, filters.workType, filters.jobType, filters.expLevel, filters.salaryMin, filters.easyApply, filters.datePosted && filters.datePosted !== '24h' ? filters.datePosted : ''].filter(Boolean).length;
+
+  // Final query = role + any keyword refiners (LinkedIn-style narrowing)
+  const effectiveQuery = [query, ...keywords].join(' ');
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['job-discovery', query, location, filters, page],
+    queryKey: ['job-discovery', effectiveQuery, location, filters, page],
     queryFn: () => api.get('/job-discovery/search', {
       params: {
-        q: query, location,
+        q: effectiveQuery, location,
         h1bOnly: filters.h1bOnly ? 'true' : undefined,
-        remote: filters.remote ? 'true' : undefined,
+        workType: filters.workType || undefined,
         jobType: filters.jobType || undefined,
         expLevel: filters.expLevel || undefined,
         salaryMin: filters.salaryMin || undefined,
         datePosted: filters.datePosted || undefined,
+        easyApply: filters.easyApply ? 'true' : undefined,
         page,
       }
     }).then(r => r.data),
@@ -171,7 +186,8 @@ export default function JobDiscoveryPage() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({ h1bOnly: false, remote: false, jobType: '', expLevel: '', salaryMin: '', datePosted: '24h' });
+    setFilters({ h1bOnly: false, workType: '', jobType: '', expLevel: '', salaryMin: '', datePosted: '24h', easyApply: false });
+    setKeywords([]);
   }, []);
 
   // Outreach automation: download a recruiter + alumni CSV for the freshest matches.
@@ -183,12 +199,13 @@ export default function JobDiscoveryPage() {
     try {
       const token = useAuthStore.getState().token;
       const params = new URLSearchParams({
-        q: query, location, postedWithin, limit: '30',
+        q: effectiveQuery, location, postedWithin, limit: '30',
         ...(filters.h1bOnly ? { h1bOnly: 'true' } : {}),
-        ...(filters.remote ? { remote: 'true' } : {}),
+        ...(filters.workType ? { workType: filters.workType } : {}),
         ...(filters.jobType ? { jobType: filters.jobType } : {}),
         ...(filters.expLevel ? { expLevel: filters.expLevel } : {}),
         ...(filters.salaryMin ? { salaryMin: filters.salaryMin } : {}),
+        ...(filters.easyApply ? { easyApply: 'true' } : {}),
       });
       const resp = await fetch(`/api/job-discovery/export?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -210,7 +227,7 @@ export default function JobDiscoveryPage() {
       setExporting(false);
       setTimeout(() => setExportMsg(null), 6000);
     }
-  }, [query, location, postedWithin, filters]);
+  }, [effectiveQuery, location, postedWithin, filters]);
 
   const handleOpenBoard = useCallback(async () => {
     setBoardOpen(true);
@@ -220,12 +237,13 @@ export default function JobDiscoveryPage() {
     try {
       const token = useAuthStore.getState().token;
       const params = new URLSearchParams({
-        q: query, location, postedWithin, limit: '30', format: 'json',
+        q: effectiveQuery, location, postedWithin, limit: '30', format: 'json',
         ...(filters.h1bOnly ? { h1bOnly: 'true' } : {}),
-        ...(filters.remote ? { remote: 'true' } : {}),
+        ...(filters.workType ? { workType: filters.workType } : {}),
         ...(filters.jobType ? { jobType: filters.jobType } : {}),
         ...(filters.expLevel ? { expLevel: filters.expLevel } : {}),
         ...(filters.salaryMin ? { salaryMin: filters.salaryMin } : {}),
+        ...(filters.easyApply ? { easyApply: 'true' } : {}),
       });
       const resp = await fetch(`/api/job-discovery/export?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -240,7 +258,7 @@ export default function JobDiscoveryPage() {
     } finally {
       setBoardLoading(false);
     }
-  }, [query, location, postedWithin, filters]);
+  }, [effectiveQuery, location, postedWithin, filters]);
 
   const topMatch = jobs.find(j => j.resumeMatchScore && j.resumeMatchScore >= 80);
 
@@ -295,6 +313,30 @@ export default function JobDiscoveryPage() {
               {r}
             </button>
           ))}
+        </div>
+
+        {/* Keyword refiners — stack/visa keywords appended to the search */}
+        <div className="flex gap-1.5 mt-2 flex-wrap items-center">
+          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mr-0.5">Refine</span>
+          {KEYWORD_CHIPS.map(k => {
+            const active = keywords.includes(k);
+            return (
+              <button key={k} type="button"
+                onClick={() => { setKeywords(prev => active ? prev.filter(x => x !== k) : [...prev, k]); setSelectedJob(null); }}
+                className={clsx('text-[11px] px-2.5 py-0.5 rounded-full border transition-colors',
+                  active
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400')}>
+                {active ? '✓ ' : '+ '}{k}
+              </button>
+            );
+          })}
+          {keywords.length > 0 && (
+            <button type="button" onClick={() => setKeywords([])}
+              className="text-[11px] text-gray-400 hover:text-red-500 underline ml-1">
+              clear
+            </button>
+          )}
         </div>
 
         {/* Outreach automation bar */}
@@ -398,27 +440,43 @@ export default function JobDiscoveryPage() {
               </label>
             </div>
 
-            {/* Work type */}
+            {/* Workplace type — maps to LinkedIn f_WT, all three actually work now */}
             <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Work Type</p>
-              <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Workplace</p>
+              <div className="space-y-1">
                 {[
                   { label: 'Remote', val: 'remote' },
                   { label: 'Hybrid', val: 'hybrid' },
                   { label: 'On-site', val: 'onsite' },
                 ].map(opt => (
-                  <label key={opt.val} className="flex items-center gap-2 cursor-pointer group">
-                    <div
-                      onClick={() => setFilterKey('remote', opt.val === 'remote' ? !filters.remote : filters.remote)}
-                      className={clsx('w-4 h-4 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
-                        filters.remote && opt.val === 'remote' ? 'bg-brand-600 border-brand-600' : 'border-gray-300 dark:border-gray-600'
-                      )}>
-                      {filters.remote && opt.val === 'remote' && <span className="text-white text-xs">✓</span>}
-                    </div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
-                  </label>
+                  <button
+                    key={opt.val}
+                    onClick={() => setFilterKey('workType', filters.workType === opt.val ? '' : opt.val)}
+                    className={clsx('w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors',
+                      filters.workType === opt.val
+                        ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-medium ring-1 ring-brand-200 dark:ring-brand-800'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
+                  >
+                    {opt.label}
+                  </button>
                 ))}
               </div>
+            </div>
+
+            {/* Easy Apply */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div
+                  onClick={() => setFilterKey('easyApply', !filters.easyApply)}
+                  className={clsx('w-4 h-4 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
+                    filters.easyApply ? 'bg-brand-600 border-brand-600' : 'border-gray-300 dark:border-gray-600'
+                  )}>
+                  {filters.easyApply && <span className="text-white text-xs">✓</span>}
+                </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                  Easy Apply only
+                </span>
+              </label>
             </div>
 
             {/* Job type */}
