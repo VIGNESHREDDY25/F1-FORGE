@@ -340,35 +340,114 @@ ${params.userName || '[Your Name]'}`;
   return { message, connectionNote };
 }
 
-export async function generateHiringManagerMessage(params: HiringManagerParams): Promise<{ message: string; connectionNote: string }> {
-  if (!openai) return hiringManagerTemplate(params);
+// ── Paste-and-go console: raw JD blob + raw profile blob → structured card ───
+export interface ParsedOutreach {
+  name: string;
+  title: string;
+  company: string;
+  role: string;
+  linkedinUrl: string;
+  message: string;
+  connectionNote: string;
+}
 
-  try {
-    const skills = (params.userSkills || []).slice(0, 4).join(', ');
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a career coach writing outreach from an international student (F1 visa) to a hiring manager. Messages must be specific to the job description, concise, confident, never desperate. Return JSON only: {"message": "<full LinkedIn DM / email body, under 150 words>", "connectionNote": "<LinkedIn connection request note, under 280 chars>"}',
-        },
-        {
-          role: 'user',
-          content: `Hiring manager: ${params.hiringManagerName}${params.hiringManagerTitle ? `, ${params.hiringManagerTitle}` : ''} at ${params.company}.
-Role: ${params.role}.
-Candidate: ${params.userName || 'a student'}, ${params.userMajor || 'CS'} at ${params.userUniversity || 'university'}${skills ? `, skilled in ${skills}` : ''}.
-Job description (reference 1-2 specific details from it):
-${params.jobDescription.slice(0, 2500)}`,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
+function cleanLine(s: string): string {
+  return s
+    .replace(/\((he|she|they)[^)]*\)/gi, '')   // pronouns
+    .replace(/·.*$/, '')                        // "· 3rd degree", "· Mountain View"
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 
-    const p = JSON.parse(response.choices[0].message.content || '{}');
-    if (p.message && p.connectionNote) return { message: p.message, connectionNote: p.connectionNote };
-  } catch { /* AI unavailable or bad JSON — fall back */ }
-  return hiringManagerTemplate(params);
+// Heuristic extraction for when AI is unavailable. LinkedIn copy-paste blobs
+// reliably start with the person's name / the job title, so first lines work.
+function heuristicParse(jdText: string, managerText: string): { name: string; title: string; company: string; role: string; linkedinUrl: string } {
+  const mLines = managerText.split('\n').map(cleanLine).filter(Boolean);
+  const jLines = jdText.split('\n').map(cleanLine).filter(Boolean);
+
+  const linkedinUrl = (managerText.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[^\s,)>"']+/i) || [''])[0];
+
+  const name = mLines[0] || '';
+  // Title line: prefer one shaped like "<title> at <company>"
+  const atLine = mLines.slice(0, 6).find(l => / at /i.test(l) && l !== name);
+  let title = atLine ? atLine.split(/ at /i)[0].trim() : (mLines[1] || '');
+  let company = atLine ? atLine.split(/ at /i)[1].trim() : '';
+
+  const role = jLines[0] || '';
+  if (!company) {
+    // LinkedIn JD pastes: line 1 = role, line 2 = "Company · Location (Type)"
+    company = (jLines[1] || '').split(/[·|,]/)[0].trim();
+  }
+  return { name, title, company, role, linkedinUrl };
+}
+
+export async function parseAndGenerateOutreach(params: {
+  jdText: string;
+  managerText: string;
+  managerLinkedin?: string;
+  userName?: string;
+  userUniversity?: string;
+  userMajor?: string;
+  userSkills?: string[];
+  userLinkedin?: string;
+}): Promise<ParsedOutreach> {
+  const heur = heuristicParse(params.jdText, params.managerText);
+  const linkedinUrl = params.managerLinkedin || heur.linkedinUrl;
+
+  if (openai) {
+    try {
+      const skills = (params.userSkills || []).slice(0, 5).join(', ');
+      const response = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: `You extract structured data from raw LinkedIn copy-paste blobs and write outreach for an international student (F1 visa). Return JSON only:
+{"name": "<hiring manager full name>", "title": "<their job title>", "company": "<company>", "role": "<the job being applied for>", "linkedinUrl": "<their linkedin profile url, or empty string>", "message": "<LinkedIn DM to send after connecting, under 150 words, references 1-2 specifics from the JD and 1 specific from the manager's profile>", "connectionNote": "<connection request note, under 280 chars>"}
+The message must be confident and specific, never desperate. Use the candidate's real background.`,
+          },
+          {
+            role: 'user',
+            content: `CANDIDATE: ${params.userName || 'a student'}, ${params.userMajor || 'CS'} at ${params.userUniversity || 'university'}${skills ? `, skilled in ${skills}` : ''}.
+
+RAW JOB DESCRIPTION PASTE:
+${params.jdText.slice(0, 3000)}
+
+RAW HIRING MANAGER PROFILE PASTE:
+${params.managerText.slice(0, 1500)}`,
+          },
+        ],
+        temperature: 0.6,
+        response_format: { type: 'json_object' },
+      });
+      const p = JSON.parse(response.choices[0].message.content || '{}');
+      if (p.name && p.message) {
+        return {
+          name: p.name,
+          title: p.title || heur.title,
+          company: p.company || heur.company,
+          role: p.role || heur.role,
+          linkedinUrl: linkedinUrl || p.linkedinUrl || '',
+          message: p.message,
+          connectionNote: p.connectionNote || '',
+        };
+      }
+    } catch { /* fall back to heuristics */ }
+  }
+
+  const tpl = hiringManagerTemplate({
+    hiringManagerName: heur.name || 'there',
+    hiringManagerTitle: heur.title,
+    company: heur.company || 'your company',
+    role: heur.role || 'the open role',
+    jobDescription: params.jdText,
+    userName: params.userName,
+    userUniversity: params.userUniversity,
+    userMajor: params.userMajor,
+    userSkills: params.userSkills,
+    userLinkedin: params.userLinkedin,
+  });
+  return { ...heur, linkedinUrl, message: tpl.message, connectionNote: tpl.connectionNote };
 }
 
 export async function optimizeResumeWithAI(resumeText: string, jobDescription: string) {

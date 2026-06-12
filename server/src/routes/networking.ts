@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { findAll, findOne, insert, update } from '../db/store';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { generateNetworkingMessage, generateHiringManagerMessage } from '../services/aiAssistant';
+import { generateNetworkingMessage, parseAndGenerateOutreach } from '../services/aiAssistant';
 
 const router = Router();
 router.use(authenticate);
@@ -34,44 +34,56 @@ router.post('/generate', validate(generateSchema), async (req: AuthRequest, res:
   res.json(msg);
 });
 
-// ── Hiring-manager console: paste a JD + the hiring manager, get a tailored
-// message + connection note, auto-saved to the outreach tracker ─────────────
+// ── Hiring-manager console: paste raw JD blob + raw profile blob → parsed
+// card + tailored message. Nothing is saved until the user clicks Save, which
+// files it into the Referral & Outreach tracker (referral_contacts). ─────────
 const hiringManagerSchema = z.object({
-  hiringManagerName: z.string().min(1),
-  hiringManagerTitle: z.string().optional(),
-  hiringManagerLinkedin: z.string().optional(),
-  company: z.string().min(1),
-  role: z.string().min(1),
   jobDescription: z.string().min(30, 'Paste the job description (at least a few sentences)'),
+  hiringManagerInfo: z.string().min(3, 'Paste the hiring manager profile info'),
+  hiringManagerLinkedin: z.string().optional(),
 });
 
 router.post('/hiring-manager', validate(hiringManagerSchema), async (req: AuthRequest, res: Response) => {
-  const { hiringManagerName, hiringManagerTitle, hiringManagerLinkedin, company, role, jobDescription } = req.body;
+  const { jobDescription, hiringManagerInfo, hiringManagerLinkedin } = req.body;
   const user = findOne<any>('users', u => u.id === req.user!.id);
 
-  const result = await generateHiringManagerMessage({
-    hiringManagerName, hiringManagerTitle, company, role, jobDescription,
+  const result = await parseAndGenerateOutreach({
+    jdText: jobDescription,
+    managerText: hiringManagerInfo,
+    managerLinkedin: hiringManagerLinkedin,
     userName: [user?.first_name, user?.last_name].filter(Boolean).join(' ') || undefined,
     userUniversity: user?.university,
     userMajor: user?.major,
     userSkills: user?.tech_stack,
     userLinkedin: user?.linkedin_url,
   });
+  res.json(result);
+});
 
-  const msg = insert('networking_messages', {
+const hiringManagerSaveSchema = z.object({
+  name: z.string().min(1),
+  title: z.string().optional(),
+  company: z.string().min(1),
+  role: z.string().optional(),
+  linkedinUrl: z.string().optional(),
+  message: z.string().min(1),
+  connectionNote: z.string().optional(),
+});
+
+router.post('/hiring-manager/save', validate(hiringManagerSaveSchema), (req: AuthRequest, res: Response) => {
+  const { name, title, company, role, linkedinUrl, message, connectionNote } = req.body;
+  const contact = insert('referral_contacts', {
     user_id: req.user!.id,
-    message_type: 'hiring_manager',
-    target_name: hiringManagerName,
-    target_title: hiringManagerTitle || '',
-    target_linkedin: hiringManagerLinkedin || '',
     target_company: company,
-    target_role: role,
-    jd_snippet: jobDescription.slice(0, 400),
-    generated_message: result.message,
-    connection_note: result.connectionNote,
-    outcome: 'pending',
+    contact_name: name,
+    contact_role: title || '',
+    target_role: role || '',
+    linkedin_url: linkedinUrl || '',
+    notes: [connectionNote && `Connection note:\n${connectionNote}`, `Message:\n${message}`].filter(Boolean).join('\n\n'),
+    source: 'hiring_manager',
+    status: 'not_contacted',
   });
-  res.json({ ...msg, connectionNote: result.connectionNote });
+  res.status(201).json(contact);
 });
 
 router.get('/', (req: AuthRequest, res: Response) => {

@@ -79,6 +79,34 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+// Expandable saved-message cell — hiring-manager saves store the full
+// connection note + message here, so it must be readable and copyable.
+function NotesCell({ notes }: { notes?: string }) {
+  const [open, setOpen] = useState(false);
+  if (!notes) return <p className="text-xs text-gray-400">—</p>;
+  return (
+    <div>
+      {open ? (
+        <div className="space-y-1.5">
+          <p className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto">{notes}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { navigator.clipboard.writeText(notes); toast.success('Message copied!'); }}
+              className="text-xs text-brand-600 dark:text-brand-400 hover:underline"
+            >Copy</button>
+            <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:underline">Collapse</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setOpen(true)} className="text-xs text-gray-400 hover:text-brand-600 text-left">
+          <span className="line-clamp-1">{notes}</span>
+          <span className="text-brand-600 dark:text-brand-400 hover:underline">View message ↓</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Target card ───────────────────────────────────────────────────────────────
 
 function TargetCard({
@@ -424,7 +452,12 @@ export default function ReferralsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users size={16} />
-            Outreach Tracker
+            Referrals &amp; Outreach
+            {contacts.filter(c => c.status === 'not_contacted').length > 0 && (
+              <span className="badge badge-yellow text-[10px]">
+                {contacts.filter(c => c.status === 'not_contacted').length} pending
+              </span>
+            )}
           </h2>
           <div className="relative w-56">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -455,7 +488,9 @@ export default function ReferralsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {contacts.map(c => (
+                  {[...contacts].sort((a, b) =>
+                    (a.status === 'not_contacted' ? 0 : 1) - (b.status === 'not_contacted' ? 0 : 1)
+                  ).map(c => (
                     <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.targetCompany}</p>
@@ -475,7 +510,7 @@ export default function ReferralsPage() {
                         </select>
                       </td>
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="text-xs text-gray-400 truncate">{c.notes || '—'}</p>
+                        <NotesCell notes={c.notes} />
                         {c.linkedinUrl && (
                           <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 hover:underline mt-0.5">
